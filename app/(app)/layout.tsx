@@ -118,12 +118,12 @@
 //   )
 // }
 
+
 import { redirect } from "next/navigation"
 import { ReactNode } from "react"
-import Sidebar from "@/components/layout/Sidebar"
-import DashboardHeader from "@/components/layout/DashboardHeader" // Fix path
 import { createClient } from "@/lib/supabase/server"
 import { UserProfile } from "@/types/user"
+import AppShell from "./AppShell"
 
 export default async function AppLayout({
   children,
@@ -137,36 +137,17 @@ export default async function AppLayout({
 
   const { data: profile, error } = await supabaseServer
     .from("profiles")
-    .select("id, full_name, role, district_id, campus_id, created_at")
+    .select("id, full_name, role")
     .eq("id", user.id)
     .single()
 
-  if (error || !profile) {
-    redirect("/login")
-  }
+  if (error || !profile) redirect("/login")
 
   const typedProfile = profile as UserProfile
 
   return (
-    // Added 'font-redhat' and 'w-full' to ensure styles apply
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-redhat">
-
-      {/* 1. Sidebar - Passes real role */}
-      <Sidebar role={typedProfile.role} />
-
-      {/* 2. Main Content Wrapper */}
-      <div className="flex-1 flex flex-col min-w-0">
-
-        {/* 3. Persistent Header (The Black Bar) */}
-        <div className="p-4 pb-0">
-          <DashboardHeader />
-        </div>
-
-        {/* 4. Scrollable Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-          {children}
-        </main>
-      </div>
-    </div>
+    <AppShell role={typedProfile.role}>
+      {children}
+    </AppShell>
   )
 }
