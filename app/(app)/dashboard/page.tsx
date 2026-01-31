@@ -5,7 +5,8 @@ import StatsCards from "./components/StatsCards"
 import { getMyProfile } from "@/lib/profile"
 import DashboardWelcome from "@/components/DashboardWelcome"
 import { getUserPoints } from "@/lib/points"
-
+import { getDailyUpdateStats, getCampusStats, getDistrictStats } from "@/lib/stats"
+import AdminStats from "./components/AdminStats"
 
 
 export default async function DashboardPage() {
@@ -16,41 +17,45 @@ export default async function DashboardPage() {
   const role = typedProfile.role
   const points = await getUserPoints(typedProfile.id)
 
+  // Fetch stats only if admin
+  let statsProps = null
+  if (role === 'admin') {
+    const [daily, campus, district] = await Promise.all([
+      getDailyUpdateStats(),
+      getCampusStats(),
+      getDistrictStats()
+    ])
+    statsProps = { daily, campus, district }
+  }
+
   return (
     <>
-    <div className="space-y-6">
+      <div className="space-y-6">
 
-      <DashboardWelcome profile={typedProfile} />
+        <DashboardWelcome profile={typedProfile} />
 
-      <ProfileCard profile={typedProfile} />
+        <ProfileCard profile={typedProfile} />
 
-      <StatsCards points={points} />
+        <StatsCards points={points} />
 
-      {/* <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-black">Quick Actions</h1>
-        <div className="flex gap-4">
-        <RoleGate role={role} allow={['buddy', 'campus_coordinator', 'admin']}>
-          <button className="bg-brand-blue text-white px-6 py-2 rounded-xl font-semibold shadow-lg hover:brightness-110 transition-all">
-            Create Checkpoint
-          </button>
-        </RoleGate>
-        <RoleGate role={role} allow={['qa_foreman', 'qa_watcher', 'admin']}>
-          <button className="bg-slate-800 text-white px-6 py-2 rounded-xl font-semibold shadow-lg hover:bg-slate-700 transition-all">
-            Feedback Inbox
-          </button>
-        </RoleGate>
+        {/* Admin Analytics Section */}
         <RoleGate role={role} allow={['admin']}>
-          <button className="bg-red-600 text-white px-6 py-2 rounded-xl font-semibold shadow-lg hover:bg-red-500 transition-all">
-            Admin Panel
-          </button>
+          {statsProps && <AdminStats
+            dailyStats={statsProps.daily}
+            campusStats={statsProps.campus}
+            districtStats={statsProps.district}
+          />}
         </RoleGate>
-        </div>
-      </div> */}
-      <div>
-        <h1 className="text-2xl font-bold text-black">Team details</h1>
-      </div>
 
-    </div>
+        {/* Standard User Team Details (Visible to non-admins) */}
+        {role !== 'admin' && (
+          <div>
+            <h1 className="text-2xl font-bold text-black">Team details</h1>
+            {/* Team details content would go here */}
+          </div>
+        )}
+
+      </div>
     </>
 
   )
