@@ -6,7 +6,7 @@ import React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Send, X } from "lucide-react"
+import { Send, University, X } from "lucide-react"
 import { Role } from "@/types/user"
 import { permissions } from "@/lib/permissions"
 import {
@@ -115,6 +115,10 @@ export default function Sidebar({ role, open, onClose }: Props) {
 
           {role === "admin" && (
             <NavItem href="/admin" label="Admin" icon={ShieldCheck} />
+          )}
+
+          {role === "campus_coordinator" && (
+            <NavItem href="/campus" label="Coordinator" icon={University} />
           )}
         </ul>
       </nav>

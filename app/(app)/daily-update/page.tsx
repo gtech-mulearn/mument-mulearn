@@ -9,6 +9,7 @@ type DailyUpdate = {
   user_id: string | null
   content: string
   created_at: string
+  college_id: string | null
 }
 
 function formatDateISO(d: Date) {
@@ -36,8 +37,8 @@ export default function DailyUpdateClient() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fixed date range: Jan 30 -> Feb 28 (inclusive)
-  const days = useMemo(() => getRangeDates("2026-01-30", "2026-03-01"), [])
+  // Fixed date range: Feb 01 -> Feb 28 (inclusive)
+  const days = useMemo(() => getRangeDates("2026-02-01", "2026-03-01"), [])
 
   async function fetchUpdates() {
     setLoading(true)
@@ -160,7 +161,7 @@ export default function DailyUpdateClient() {
           {days.map((d) => {
             const count = marks.get(d.date) || 0
             const dt = new Date(d.date)
-            // Highlight a specific checkpoint date (Jan 31, 2026) instead of Sundays
+            // Highlight a specific checkpoint date (Feb 01, 2026) instead of Sundays
             const isCheckpoint = formatDateISO(dt) === "2026-01-31"
             return (
               <div

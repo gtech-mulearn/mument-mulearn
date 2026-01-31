@@ -76,6 +76,7 @@ export interface Database {
                     user_id: string | null
                     content: string
                     created_at: string | null
+                    colleqge_id: string | null
                 }
             }
             feedback: {

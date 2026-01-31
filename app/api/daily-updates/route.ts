@@ -34,12 +34,23 @@ export async function POST(req: Request) {
 
     if (!user) return NextResponse.json({ message: "Not authenticated" }, { status: 401 })
 
-    let body = await req.json()
+    const body = await req.json()
     const content = (body.content || "").toString().trim()
     if (!content) return NextResponse.json({ error: "Content required" }, { status: 400 })
+    
+    // Get user's college_id from profiles
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("campus_id")
+      .eq("id", user.id)
+      .single()
+
+    if (profileError) return NextResponse.json({ error: "Failed to fetch user profile" }, { status: 500 })
+
+    const collegeId = profile?.campus_id || null
+
     // Prevent multiple submissions per user per UTC day.
     // Allow client to pass local-day UTC bounds (startISO/endISO). If provided, use them.
-    body = await req.json().catch(() => ({}))
     const startISO = typeof body?.startISO === "string" ? body.startISO : null
     const endISO = typeof body?.endISO === "string" ? body.endISO : null
 
@@ -63,7 +74,7 @@ export async function POST(req: Request) {
 
     const { data, error } = await supabase
       .from("daily_updates")
-      .insert({ content, user_id: user.id })
+      .insert({ content, user_id: user.id, college_id: collegeId })
       .select()
       .single()
 

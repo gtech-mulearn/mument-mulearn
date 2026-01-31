@@ -1,9 +1,6 @@
-import { Calendar, Send } from "lucide-react";
-import { User } from "lucide-react";
 import { getDailyUpdates } from "@/lib/daily-updates";
 import { Suspense } from "react";
-
-const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-pink-500', 'bg-yellow-500', 'bg-indigo-500'];
+import DailyForumFilter from "./components/DailyForumFilter";
 
 function LoadingSkeleton() {
     return (
@@ -32,33 +29,14 @@ async function DailyForumContent() {
         );
     }
 
+    // Get unique colleges for filter dropdown
+    const colleges = [...new Set(dailyUpdates
+        .map((u: { college_name?: string }) => u.college_name)
+        .filter((name): name is string => Boolean(name)))]
+        .sort();
+
     return (
-        <div>
-            {dailyUpdates.map((entry, index) => (
-                <div key={entry.id} className="mb-4 p-4 border border-slate-200 rounded-lg shadow-sm flex gap-4">
-                    <div className={`${colors[index % colors.length]} p-2 rounded-lg h-fit text-white shrink-0`}>
-                        <Send size={24} />
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                            <div>
-                                <Calendar size={14} className="inline-block mr-1 text-slate-400" />
-                                <span className="text-sm text-slate-500">
-                                    {entry.created_at ? new Date(entry.created_at).toLocaleDateString() : 'N/A'}
-                                </span>
-                            </div>
-                            <div>
-                                <User size={14} className="inline-block mr-1 text-slate-400" />
-                                <span className="text-sm font-medium text-slate-700">
-                                    {(entry as { user_name?: string }).user_name ?? 'Anonymous'}
-                                </span>
-                            </div>
-                        </div>
-                        <p className="text-slate-800">{entry.content}</p>
-                    </div>
-                </div>
-            ))}
-        </div>
+        <DailyForumFilter dailyUpdates={dailyUpdates} colleges={colleges} />
     );
 }
 
@@ -68,6 +46,9 @@ export default function DailyForumPage() {
             <header className="mb-6">
                 <h1 className="text-2xl font-bold text-blue-500">Daily Forum</h1>
                 <p className="text-sm text-slate-500">See Daily Update of Others</p>
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                    <strong>Note:</strong> Now you can upvote the daily updates you find helpful! Click the Arrow icon on any update to show your appreciation and encourage more great content.
+                </div>
             </header>
             <Suspense fallback={<LoadingSkeleton />}>
                 <DailyForumContent />
