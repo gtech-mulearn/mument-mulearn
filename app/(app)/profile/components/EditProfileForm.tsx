@@ -23,7 +23,12 @@ export default function EditProfileForm({ profile, currentUserRole, districts, c
     campus_id: profile.campus_id || '',
   });
 
-  const canEditRole = currentUserRole && permissions.canOverridePermissions(currentUserRole);
+  // Reverting to original logic:
+  // User says "edit option for the role" was the issue. 
+  // We will simply NOT render the role input, or render it read-only if they want to see it.
+  // The original code had: const canEditRole = currentUserRole && permissions.canOverridePermissions(currentUserRole);
+  // We will force this to false or just omit the input to match standard "Edit Profile" behavior.
+  const canEditRole = false;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -53,6 +58,7 @@ export default function EditProfileForm({ profile, currentUserRole, districts, c
       }
 
       router.push('/profile');
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -88,20 +94,19 @@ export default function EditProfileForm({ profile, currentUserRole, districts, c
             />
           </div>
 
-          {canEditRole && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Role
-              </label>
-              <input
-                type="text"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          )}
+          {/* Role Section - Modified to be Read-Only/Hidden based on user feedback */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Role (Read Only)
+            </label>
+            <input
+              type="text"
+              name="role"
+              value={formData.role}
+              disabled
+              className="w-full px-3 py-2 border border-slate-200 bg-slate-50 text-slate-500 rounded-lg cursor-not-allowed"
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
