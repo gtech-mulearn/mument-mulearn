@@ -4,9 +4,10 @@ import { useState, useTransition, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AdminUserView } from "@/lib/admin"
 import { Role } from "@/types/user"
-import { Search, Loader2, X, Filter, Edit2 } from "lucide-react"
+import { Search, Loader2, X, Filter, Edit2, UserPlus } from "lucide-react" // Added UserPlus
 import SearchableSelect from "./SearchableSelect"
 import EditUserDialog from "./EditUserDialog"
+import CreateUserDialog from "./CreateUserDialog" // Added CreateUserDialog import
 
 interface Props {
     users: AdminUserView[]
@@ -23,6 +24,7 @@ export default function UserManagementTable({ users, districts, campuses, curren
     const searchParams = useSearchParams()
     const [isPending, startTransition] = useTransition()
     const [editingUser, setEditingUser] = useState<AdminUserView | null>(null)
+    const [isCreateOpen, setIsCreateOpen] = useState(false)
 
     // Local state for debounced search
     const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
@@ -68,66 +70,79 @@ export default function UserManagementTable({ users, districts, campuses, curren
 
     const hasFilters = searchParams.toString().length > 0 && searchParams.get("page") !== "1"
 
+    // ... (rest of code) ...
+
     return (
         <div className="space-y-6">
             {/* Modern Filter Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4 lg:space-y-0 lg:flex lg:items-center lg:justify-between lg:gap-4">
 
-                {/* Search Input */}
-                <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                    <input
-                        type="text"
-                        placeholder="Search by name..."
-                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-gray-50/50 focus:bg-white transition-all"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="space-y-4 md:space-y-0 md:flex md:items-center md:gap-4 flex-1">
+                    {/* Search Input */}
+                    <div className="relative flex-1 min-w-[200px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search by name..."
+                            className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-gray-50/50 focus:bg-white transition-all"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Filters Group */}
+                    <div className="flex flex-col md:flex-row gap-3 md:items-center">
+                        <div className="w-full md:w-36">
+                            <SearchableSelect
+                                options={ROLES.map(r => ({ id: r, name: r.charAt(0).toUpperCase() + r.slice(1).replace('_', ' ') }))}
+                                value={searchParams.get("role") || "all"}
+                                onChange={(val) => handleFilterChange("role", val)}
+                                placeholder="Roles"
+                            />
+                        </div>
+
+                        <div className="w-full md:w-44">
+                            <SearchableSelect
+                                options={districts}
+                                value={searchParams.get("district_id") || "all"}
+                                onChange={(val) => handleFilterChange("district_id", val)}
+                                placeholder="Districts"
+                            />
+                        </div>
+
+                        <div className="w-full md:w-56">
+                            <SearchableSelect
+                                options={campuses}
+                                value={searchParams.get("campus_id") || "all"}
+                                onChange={(val) => handleFilterChange("campus_id", val)}
+                                placeholder="Campuses"
+                            />
+                        </div>
+
+                        {/* Clear Button */}
+                        {hasFilters || searchTerm ? (
+                            <button
+                                onClick={clearFilters}
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                title="Clear Filters"
+                            >
+                                <X size={20} />
+                            </button>
+                        ) : null}
+                    </div>
                 </div>
 
-                {/* Filters Group */}
-                <div className="flex flex-col md:flex-row gap-3 md:items-center">
-                    <div className="w-full md:w-40">
-                        <SearchableSelect
-                            options={ROLES.map(r => ({ id: r, name: r.charAt(0).toUpperCase() + r.slice(1).replace('_', ' ') }))}
-                            value={searchParams.get("role") || "all"}
-                            onChange={(val) => handleFilterChange("role", val)}
-                            placeholder="All Roles"
-                        />
-                    </div>
-
-                    <div className="w-full md:w-48">
-                        <SearchableSelect
-                            options={districts}
-                            value={searchParams.get("district_id") || "all"}
-                            onChange={(val) => handleFilterChange("district_id", val)}
-                            placeholder="All Districts"
-                        />
-                    </div>
-
-                    <div className="w-full md:w-64">
-                        <SearchableSelect
-                            options={campuses}
-                            value={searchParams.get("campus_id") || "all"}
-                            onChange={(val) => handleFilterChange("campus_id", val)}
-                            placeholder="All Campuses"
-                        />
-                    </div>
-
-                    {/* Clear Button */}
-                    {hasFilters || searchTerm ? (
-                        <button
-                            onClick={clearFilters}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                            title="Clear Filters"
-                        >
-                            <X size={20} />
-                        </button>
-                    ) : null}
-                </div>
+                <button
+                    onClick={() => setIsCreateOpen(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-brand-blue text-white font-semibold rounded-xl hover:brightness-110 active:scale-[0.95] transition-all shadow-lg shadow-brand-blue/20 whitespace-nowrap"
+                >
+                    <UserPlus size={18} />
+                    Add User
+                </button>
             </div>
 
             {/* Table */}
+            {/* ... */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
@@ -231,6 +246,14 @@ export default function UserManagementTable({ users, districts, campuses, curren
                     campuses={campuses}
                 />
             )}
+
+            {/* Create Dialog */}
+            <CreateUserDialog
+                isOpen={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+                districts={districts}
+                campuses={campuses}
+            />
         </div>
     )
 }

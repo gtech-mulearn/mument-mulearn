@@ -134,3 +134,80 @@ export async function updatePasswordAction(formData: FormData) {
 
     revalidatePath("/profile")
 }
+
+import { createAdminClient } from "@/lib/supabase/admin"
+
+export async function createUserAction(data: {
+    email: string;
+    full_name: string;
+    password: string;
+    role: Role;
+    district_id: string;
+    campus_id: string
+}) {
+    // Note: We don't need `createClient` for the auth part since we use `createAdminClient`,
+    // but we check admin role first.
+    const currentUser = await getMyProfile()
+
+    if (currentUser?.role !== "admin") {
+        throw new Error("Unauthorized")
+    }
+
+    const supabaseAdmin = createAdminClient()
+    let userId: string | null = null;
+
+    // 1. Try to Create Auth User
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: data.email,
+        password: data.password,
+        email_confirm: true,
+        user_metadata: {
+            full_name: data.full_name
+        }
+    })
+
+    if (authError) {
+        if (authError.message.includes("already been registered")) {
+            // User exists, try to find them to repair the profile
+            // We use listUsers. For very large projects this is inefficient, but okay here.
+            const { data: usersData } = await supabaseAdmin.auth.admin.listUsers()
+            // Naive find
+            const existingUser = usersData.users.find(u => u.email === data.email)
+
+            if (existingUser) {
+                userId = existingUser.id
+                // Update password and name for the existing user
+                await supabaseAdmin.auth.admin.updateUserById(userId, {
+                    password: data.password,
+                    user_metadata: { full_name: data.full_name }
+                })
+            } else {
+                throw new Error("User with this email exists but could not be located in directory.")
+            }
+        } else {
+            throw new Error(authError.message)
+        }
+    } else {
+        userId = authUser.user?.id || null
+    }
+
+    if (!userId) throw new Error("Failed to resolve user ID")
+
+    // 2. Upsert Profile
+    // Using upsert ensures that if the profile is missing (ghost user), it gets created.
+    // If it exists, it gets updated.
+    const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .upsert({
+            id: userId,
+            full_name: data.full_name,
+            role: data.role,
+            district_id: data.district_id,
+            campus_id: data.campus_id || null,
+            email: data.email
+        })
+
+    if (profileError) throw new Error("Profile Error: " + profileError.message)
+
+    revalidatePath("/admin")
+}
