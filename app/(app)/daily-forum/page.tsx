@@ -50,7 +50,7 @@ async function DailyForumContent() {
                             <div>
                                 <User size={14} className="inline-block mr-1 text-slate-400" />
                                 <span className="text-sm font-medium text-slate-700">
-                                    {(entry as any).user_name ? (entry as any).user_name : 'Anonymous'}
+                                    {(entry as { user_name?: string }).user_name ?? 'Anonymous'}
                                 </span>
                             </div>
                         </div>

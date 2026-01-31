@@ -6,7 +6,7 @@ import React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { X } from "lucide-react"
+import { Send, X } from "lucide-react"
 import { Role } from "@/types/user"
 import { permissions } from "@/lib/permissions"
 import {
@@ -98,6 +98,8 @@ export default function Sidebar({ role, open, onClose }: Props) {
           {!permissions.canManageCheckpoints(role) && (
             <NavItem href="/checkpoints" label="Checkpoints" icon={MapPin} />
           )}
+
+          <NavItem href="/daily-forum" label="Forum" icon={Send} />
 
           <NavItem href="/daily-update" label="Daily Update" icon={CalendarCheck} />
 
