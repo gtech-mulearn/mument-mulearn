@@ -61,7 +61,12 @@ export default function LoginForm({ onSignedIn }: Props) {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-blue-700">Password</label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="block text-sm font-medium text-blue-700">Password</label>
+            <a href="/forgot-password" className="text-xs font-semibold text-brand-blue hover:text-blue-800 hover:underline">
+              Forgot password?
+            </a>
+          </div>
           <div className="relative mt-1">
             <input
               id="password"

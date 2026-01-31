@@ -35,6 +35,23 @@ export default function Sidebar({ role, open, onClose }: Props) {
     return `group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 hover:bg-white/10 ${isActive ? "text-white font-semibold bg-white/5" : "text-white/70"}`
   }, [pathname])
 
+  const NavItem = ({ href, label, icon: Icon }: { href: string; label: string; icon: any }) => {
+    // Exact match for most, but maybe startsWith for sub-pages?
+    // adherence to original logic: strict match
+    const isActive = pathname === href
+    return (
+      <li>
+        <Link href={href} className={getLinkStyle(href)} onClick={onClose}>
+          <Icon size={20} className={isActive ? "text-brand-yellow" : ""} />
+          {label}
+          {isActive && (
+            <div className="absolute left-0 w-1.5 h-6 bg-brand-yellow rounded-r-full" />
+          )}
+        </Link>
+      </li>
+    )
+  }
+
   return (
     <aside
       className={`
@@ -70,77 +87,32 @@ export default function Sidebar({ role, open, onClose }: Props) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto custom-scrollbar">
         <ul className="flex flex-col gap-2">
-          <li>
-            <Link href="/dashboard" className={getLinkStyle("/dashboard")} onClick={onClose}>
-              <LayoutDashboard size={20} className={pathname === "/dashboard" ? "text-brand-yellow" : ""} />
-              Dashboard
-              {pathname === "/dashboard" && (
-                <div className="absolute left-0 w-1.5 h-6 bg-brand-yellow rounded-r-full" />
-              )}
-            </Link>
-          </li>
+          <NavItem href="/dashboard" label="Dashboard" icon={LayoutDashboard} />
+          <NavItem href="/profile" label="Profile" icon={User} />
+          <NavItem href="/feedback/submit" label="Submit Feedback" icon={MessageSquareText} />
 
-          <li>
-            <Link href="/profile" className={getLinkStyle("/profile")} onClick={onClose}>
-              <User size={20} className={pathname === "/profile" ? "text-brand-yellow" : ""} />
-              Profile
-            </Link>
-          </li>
+          {/* Show regular Checkpoints link if not managing or just one link? 
+                The original code had two links for checkpoints depending on permission. 
+                I will preserve the original logic structure but use NavItem.
+            */}
+          {!permissions.canManageCheckpoints(role) && (
+            <NavItem href="/checkpoints" label="Checkpoints" icon={MapPin} />
+          )}
 
-          <li>
-            <Link href="/feedback/submit" className={getLinkStyle("/feedback/submit")} onClick={onClose}>
-              <MessageSquareText size={20} />
-              Submit Feedback
-            </Link>
-          </li>
-
-          <li>
-            <Link href="/checkpoints" className={getLinkStyle("/checkpoints")} onClick={onClose}>
-              <MapPin size={20} />
-              Checkpoints
-            </Link>
-          </li>
-
-          <li>
-            <Link href="/daily-update" className={getLinkStyle("/daily-update")} onClick={onClose}>
-              <CalendarCheck size={20} />
-              Daily Update
-            </Link>
-          </li>
+          <NavItem href="/daily-update" label="Daily Update" icon={CalendarCheck} />
 
           {permissions.canViewFeedbackInbox(role) && (
-            <li>
-              <Link href="/feedback/inbox" className={getLinkStyle("/feedback/inbox")} onClick={onClose}>
-                <Inbox size={20} />
-                Feedback Inbox
-              </Link>
-            </li>
+            <NavItem href="/feedback/inbox" label="Feedback Inbox" icon={Inbox} />
           )}
 
           {permissions.canManageCheckpoints(role) && (
-            <li>
-              <Link href="/checkpoints" className={getLinkStyle("/checkpoints")} onClick={onClose}>
-                <MapPin size={20} />
-                Manage Checkpoints
-              </Link>
-            </li>
+            <NavItem href="/checkpoints" label="Manage Checkpoints" icon={MapPin} />
           )}
 
-          <li>
-            <Link href="/announcements" className={getLinkStyle("/announcements")} onClick={onClose}>
-              <Megaphone size={20} />
-              Announcements
-            </Link>
-          </li>
-
+          <NavItem href="/announcements" label="Announcements" icon={Megaphone} />
 
           {role === "admin" && (
-            <li>
-              <Link href="/admin" className={getLinkStyle("/admin")} onClick={onClose}>
-                <ShieldCheck size={20} />
-                Admin
-              </Link>
-            </li>
+            <NavItem href="/admin" label="Admin" icon={ShieldCheck} />
           )}
         </ul>
       </nav>

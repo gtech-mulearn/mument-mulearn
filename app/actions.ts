@@ -91,3 +91,46 @@ export async function updateUserProfileAction(userId: string, data: { role: Role
 
     revalidatePath("/admin")
 }
+
+export async function resetPasswordAction(formData: FormData) {
+    const email = String(formData.get("email")).trim()
+    const supabase = await createClient()
+
+    // Supabase will send a link that points to the configured site URL + /auth/callback?code=...
+    // The callback route should exchange the code for a session and then redirect.
+    // Here we suggest redirecting to a settings page where they can update the password.
+    // If you haven't set up the callback route, you need to.
+
+    // We assume there is a generic auth callback handler that handles this.
+    // If not, we rely on the default behavior which usually just works if the site URL is correct.
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/settings/password`,
+    })
+
+    if (error) {
+        throw new Error(error.message)
+    }
+}
+
+export async function updatePasswordAction(formData: FormData) {
+    const password = String(formData.get("password")).trim()
+    const confirmPassword = String(formData.get("confirmPassword")).trim()
+
+    if (password !== confirmPassword) {
+        throw new Error("Passwords do not match")
+    }
+
+    if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters")
+    }
+
+    const supabase = await createClient()
+    const { error } = await supabase.auth.updateUser({ password })
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    revalidatePath("/profile")
+}

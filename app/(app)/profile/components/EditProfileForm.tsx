@@ -162,6 +162,13 @@ export default function EditProfileForm({ profile, currentUserRole, districts, c
               Cancel
             </button>
           </div>
+
+          <div className="pt-6 mt-6 border-t border-slate-100">
+            <h3 className="text-sm font-semibold text-slate-900 mb-2">Security</h3>
+            <a href="/settings/password" className="text-sm text-brand-blue hover:underline">
+              Change Password
+            </a>
+          </div>
         </form>
       </div>
     </div>
