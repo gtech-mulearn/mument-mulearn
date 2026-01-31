@@ -26,8 +26,8 @@ export default async function CampusPage(props: {
     // Filter to show only users from the same campus
     const filters: UserFilters = {
         campus_id: user.campus_id,
-        role: (searchParams.role as any) || undefined,
-        search: (searchParams.search as string) || undefined,
+        role: (searchParams.role as string | undefined) as any,
+        search: (searchParams.search as string | undefined) as any,
     }
 
     // Fetch data in parallel

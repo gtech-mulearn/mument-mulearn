@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AdminUserView } from "@/lib/admin"
 import { Role } from "@/types/user"
@@ -29,18 +29,7 @@ export default function UserManagementTable({ users, districts, campuses, curren
     // Local state for debounced search
     const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
 
-    // Debounce Search Effect
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (searchTerm !== (searchParams.get("search") || "")) {
-                handleFilterChange("search", searchTerm)
-            }
-        }, 300)
-
-        return () => clearTimeout(timer)
-    }, [searchTerm])
-
-    const handleFilterChange = (key: string, value: string) => {
+    const handleFilterChange = useCallback((key: string, value: string) => {
         const params = new URLSearchParams(searchParams)
         if (value && value !== "all") {
             params.set(key, value)
@@ -51,7 +40,18 @@ export default function UserManagementTable({ users, districts, campuses, curren
         startTransition(() => {
             router.replace(`/admin?${params.toString()}`)
         })
-    }
+    }, [searchParams, router])
+
+    // Debounce Search Effect
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchTerm !== (searchParams.get("search") || "")) {
+                handleFilterChange("search", searchTerm)
+            }
+        }, 300)
+
+        return () => clearTimeout(timer)
+    }, [searchTerm, handleFilterChange, searchParams])
 
     const clearFilters = () => {
         setSearchTerm("")
@@ -79,7 +79,7 @@ export default function UserManagementTable({ users, districts, campuses, curren
 
                 <div className="space-y-4 md:space-y-0 md:flex md:items-center md:gap-4 flex-1">
                     {/* Search Input */}
-                    <div className="relative flex-1 min-w-[200px]">
+                    <div className="relative flex-1 min-w-50">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input
                             type="text"

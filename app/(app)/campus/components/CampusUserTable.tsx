@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AdminUserView } from "@/lib/admin"
 import { Role } from "@/types/user"
-import { Search, Loader2, X, Edit2 } from "lucide-react"
+import { Search, X, Edit2 } from "lucide-react"
 import CampusSearchableSelect from "./CampusSearchableSelect"
 import CampusEditUserDialog from "./CampusEditUserDialog"
 
@@ -55,7 +55,7 @@ export default function CampusUserTable({ users, districts, campuses, currentPag
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4 lg:space-y-0 lg:flex lg:items-center lg:justify-between lg:gap-4">
                 <div className="space-y-4 md:space-y-0 md:flex md:items-center md:gap-4 flex-1">
                     {/* Search Input */}
-                    <div className="relative flex-1 min-w-[200px]">
+                    <div className="relative flex-1 min-w-50">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input
                             type="text"

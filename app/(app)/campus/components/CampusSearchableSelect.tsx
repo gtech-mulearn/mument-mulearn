@@ -16,7 +16,7 @@ interface CampusSearchableSelectProps {
     label?: string
 }
 
-export default function CampusSearchableSelect({ options, value, onChange, placeholder, label }: CampusSearchableSelectProps) {
+export default function CampusSearchableSelect({ options, value, onChange, placeholder }: CampusSearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState("")
     const wrapperRef = useRef<HTMLDivElement>(null)

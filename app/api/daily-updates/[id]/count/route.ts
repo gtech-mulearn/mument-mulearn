@@ -3,16 +3,16 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
-    const updateId = params.id
 
     const { data, error } = await supabase
       .from("daily_updates")
       .select("upvote_count")
-      .eq("id", updateId)
+      .eq("id", id)
       .single()
 
     if (error) {

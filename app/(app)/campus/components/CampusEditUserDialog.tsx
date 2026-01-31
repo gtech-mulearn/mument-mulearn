@@ -22,7 +22,7 @@ interface Props {
 
 const ROLES: Role[] = ["participant", "buddy"]
 
-export default function CampusEditUserDialog({ user, isOpen, onClose, districts, campuses }: Props) {
+export default function CampusEditUserDialog({ user, isOpen, onClose }: Props) {
     const [isPending, startTransition] = useTransition()
     const [formData, setFormData] = useState({
         role: user.role,

@@ -26,31 +26,32 @@ type Props = {
   onClose: () => void
 }
 
+interface NavItemProps {
+  href: string
+  label: string
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  isActive: boolean
+  onClose: () => void
+}
+
+const NavItem = ({ href, label, icon: Icon, isActive, onClose }: NavItemProps) => {
+  return (
+    <li>
+      <Link href={href} className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 hover:bg-white/10 ${
+            isActive ? "text-white font-semibold bg-white/5" : "text-white/70"
+          }`} onClick={onClose}>
+        <Icon size={20} className={isActive ? "text-brand-yellow" : ""} />
+        {label}
+        {isActive && (
+          <div className="absolute left-0 w-1.5 h-6 bg-brand-yellow rounded-r-full" />
+        )}
+      </Link>
+    </li>
+  )
+}
+
 export default function Sidebar({ role, open, onClose }: Props) {
   const pathname = usePathname()
-
-  const getLinkStyle = React.useCallback((href: string) => {
-    const isActive = pathname === href
-    // Prefer animating only color/opacity instead of `transition-all` which forces expensive layout/paint work
-    return `group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 hover:bg-white/10 ${isActive ? "text-white font-semibold bg-white/5" : "text-white/70"}`
-  }, [pathname])
-
-  const NavItem = ({ href, label, icon: Icon }: { href: string; label: string; icon: any }) => {
-    // Exact match for most, but maybe startsWith for sub-pages?
-    // adherence to original logic: strict match
-    const isActive = pathname === href
-    return (
-      <li>
-        <Link href={href} className={getLinkStyle(href)} onClick={onClose}>
-          <Icon size={20} className={isActive ? "text-brand-yellow" : ""} />
-          {label}
-          {isActive && (
-            <div className="absolute left-0 w-1.5 h-6 bg-brand-yellow rounded-r-full" />
-          )}
-        </Link>
-      </li>
-    )
-  }
 
   return (
     <aside
@@ -87,38 +88,38 @@ export default function Sidebar({ role, open, onClose }: Props) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto custom-scrollbar">
         <ul className="flex flex-col gap-2">
-          <NavItem href="/dashboard" label="Dashboard" icon={LayoutDashboard} />
-          <NavItem href="/profile" label="Profile" icon={User} />
-          <NavItem href="/feedback/submit" label="Submit Feedback" icon={MessageSquareText} />
+          <NavItem href="/dashboard" label="Dashboard" icon={LayoutDashboard} isActive={pathname === '/dashboard'} onClose={onClose} />
+          <NavItem href="/profile" label="Profile" icon={User} isActive={pathname === '/profile'} onClose={onClose} />
+          <NavItem href="/feedback/submit" label="Submit Feedback" icon={MessageSquareText} isActive={pathname === '/feedback/submit'} onClose={onClose} />
 
           {/* Show regular Checkpoints link if not managing or just one link? 
                 The original code had two links for checkpoints depending on permission. 
                 I will preserve the original logic structure but use NavItem.
             */}
           {!permissions.canManageCheckpoints(role) && (
-            <NavItem href="/checkpoints" label="Checkpoints" icon={MapPin} />
+            <NavItem href="/checkpoints" label="Checkpoints" icon={MapPin} isActive={pathname === '/checkpoints'} onClose={onClose} />
           )}
 
-          <NavItem href="/daily-forum" label="Forum" icon={Send} />
+          <NavItem href="/daily-forum" label="Forum" icon={Send} isActive={pathname === '/daily-forum'} onClose={onClose} />
 
-          <NavItem href="/daily-update" label="Daily Update" icon={CalendarCheck} />
+          <NavItem href="/daily-update" label="Daily Update" icon={CalendarCheck} isActive={pathname === '/daily-update'} onClose={onClose} />
 
           {permissions.canViewFeedbackInbox(role) && (
-            <NavItem href="/feedback/inbox" label="Feedback Inbox" icon={Inbox} />
+            <NavItem href="/feedback/inbox" label="Feedback Inbox" icon={Inbox} isActive={pathname === '/feedback/inbox'} onClose={onClose} />
           )}
 
           {permissions.canManageCheckpoints(role) && (
-            <NavItem href="/checkpoints" label="Manage Checkpoints" icon={MapPin} />
+            <NavItem href="/checkpoints" label="Manage Checkpoints" icon={MapPin} isActive={pathname === '/checkpoints'} onClose={onClose} />
           )}
 
-          <NavItem href="/announcements" label="Announcements" icon={Megaphone} />
+          <NavItem href="/announcements" label="Announcements" icon={Megaphone} isActive={pathname === '/announcements'} onClose={onClose} />
 
           {role === "admin" && (
-            <NavItem href="/admin" label="Admin" icon={ShieldCheck} />
+            <NavItem href="/admin" label="Admin" icon={ShieldCheck} isActive={pathname === '/admin'} onClose={onClose} />
           )}
 
           {role === "campus_coordinator" && (
-            <NavItem href="/campus" label="Coordinator" icon={University} />
+            <NavItem href="/campus" label="Coordinator" icon={University} isActive={pathname === '/campus'} onClose={onClose} />
           )}
         </ul>
       </nav>
