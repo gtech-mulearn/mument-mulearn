@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useToast } from "@/components/ToastProvider"
 import { Calendar } from "lucide-react"
+import confetti from "canvas-confetti"
 
 type DailyUpdate = {
   id: string
@@ -36,6 +37,7 @@ export default function DailyUpdateClient() {
   const [updates, setUpdates] = useState<DailyUpdate[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   // Fixed date range: Feb 01 -> Feb 28 (inclusive)
   const days = useMemo(() => getRangeDates("2026-02-01", "2026-03-01"), [])
@@ -59,6 +61,103 @@ export default function DailyUpdateClient() {
   useEffect(() => {
     fetchUpdates()
   }, [])
+
+  useEffect(() => {
+    if (showSuccessModal) {
+      // Sound Effect
+      const playCelebrationSound = () => {
+        try {
+          const AudioCtor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+          if (!AudioCtor) return
+
+          const ctx = new AudioCtor()
+
+          // Function to play a single "clap"
+          const playClap = (startTime: number) => {
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            const filter = ctx.createBiquadFilter()
+
+            // White noise buffer for the clap
+            const bufferSize = ctx.sampleRate * 0.1 // 100ms
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
+            const data = buffer.getChannelData(0)
+            for (let i = 0; i < bufferSize; i++) {
+              data[i] = Math.random() * 2 - 1
+            }
+            const noise = ctx.createBufferSource()
+            noise.buffer = buffer
+
+            // Filter to make it sound like hands clapping (mid-range bump)
+            filter.type = 'bandpass'
+            filter.frequency.value = 1000 + Math.random() * 200 // Slight variation
+            filter.Q.value = 1
+
+            // Envelope: Sharp attack, fast decay
+            gain.gain.setValueAtTime(0, startTime)
+            gain.gain.linearRampToValueAtTime(0.8, startTime + 0.001)
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.1)
+
+            noise.connect(filter)
+            filter.connect(gain)
+            gain.connect(ctx.destination)
+
+            noise.start(startTime)
+            noise.stop(startTime + 0.15)
+          }
+
+          // Schedule multiple claps to simulate a crowd
+          const start = ctx.currentTime
+          const duration = 2.0
+          const density = 40 // discrete claps
+
+          for (let i = 0; i < density; i++) {
+            // Randomize timing: denser at the beginning
+            const offset = Math.pow(Math.random(), 2) * duration
+            playClap(start + offset)
+          }
+
+          // Add a few more random ones for "stragglers"
+          playClap(start + 2.1)
+          playClap(start + 2.3)
+
+        } catch (e) {
+          console.error("Audio playback failed", e)
+        }
+      }
+
+      playCelebrationSound()
+
+      const duration = 3 * 1000
+      const animationEnd = Date.now() + duration
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 60 }
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min
+
+      const interval: NodeJS.Timeout = setInterval(function () {
+        const timeLeft = animationEnd - Date.now()
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval)
+        }
+
+        const particleCount = 50 * (timeLeft / duration)
+        // since particles fall down, start a bit higher than random
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        })
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        })
+      }, 250)
+
+      return () => clearInterval(interval)
+    }
+  }, [showSuccessModal])
 
   const marks = useMemo(() => {
     const map = new Map<string, number>()
@@ -108,7 +207,8 @@ export default function DailyUpdateClient() {
       }
 
       setContent("")
-      show({ title: 'Saved', description: 'Your daily update was saved.' })
+      // show({ title: 'Saved', description: 'Your daily update was saved.' })
+      setShowSuccessModal(true)
       await fetchUpdates()
     } catch (err: unknown) {
       const e = err as { message?: string }
@@ -196,6 +296,32 @@ export default function DailyUpdateClient() {
           ))}
         </ul>
       </section>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center space-y-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2 text-3xl">
+                🎉
+              </div>
+              <h3 className="text-xl font-bold text-slate-800">Awesome Job!</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Thank you for submitting your daily update! You're getting started in the MuMoment journey.
+              </p>
+              <p className="text-slate-600 text-sm font-medium">
+                Consistency is key. 30 days of updates will transform you into something big. Keep building that mindset!
+              </p>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full py-2.5 bg-brand-blue text-white font-semibold rounded-xl hover:brightness-110 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,15 +1,27 @@
 import { redirect } from "next/navigation"
 import { getMyProfile } from "@/lib/profile"
+import { getUserStreak } from "@/lib/daily-updates"
 import Link from "next/link"
+import { Flame } from "lucide-react"
 
 export default async function ProfilePage() {
   const profile = await getMyProfile()
   if (!profile) redirect("/login")
 
+  const streak = await getUserStreak(profile.id)
+
   return (
     <div className="max-w-3xl mx-auto p-6">
       <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-        <div className="flex items-center gap-6 p-6">
+        <div className="flex items-center gap-6 p-6 relative">
+          {/* Streak Badge */}
+          {streak > 0 && (
+            <div className="absolute top-6 right-6 flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-full border border-orange-100 animate-pulse-slow shadow-sm">
+              <Flame size={18} className="fill-orange-500 text-orange-600 animate-pulse" />
+              <span className="font-bold text-sm">{streak} Day Streak</span>
+            </div>
+          )}
+
           <div
             className="h-20 w-20 rounded-full flex items-center justify-center text-3xl font-bold text-white bg-[#2e85fe]"
             aria-hidden

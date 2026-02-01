@@ -85,3 +85,52 @@ export async function getDailyUpdates() {
   })
 }
 
+export async function getUserStreak(userId: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("daily_updates")
+    .select("created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+
+  if (error || !data) return 0
+
+  if (data.length === 0) return 0
+
+  const dates = data.map(d => {
+    // Normalize to YYYY-MM-DD based on UTC or local? 
+    // Supabase stores as timestamptz usually. 
+    // Let's use simple date extraction.
+    return new Date(d.created_at).toISOString().split('T')[0]
+  })
+
+  // Unique dates sorted desc
+  const uniqueDates = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a))
+
+  if (uniqueDates.length === 0) return 0
+
+  const today = new Date().toISOString().split('T')[0]
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+
+  // If top isn't today or yesterday, streak is 0
+  const last = uniqueDates[0]
+  if (last !== today && last !== yesterday) return 0
+
+  let streak = 0
+  let current = new Date(last)
+
+  for (const dateStr of uniqueDates) {
+    if (dateStr === current.toISOString().split('T')[0]) {
+      streak++
+      // Go back one day
+      current.setDate(current.getDate() - 1)
+    } else {
+      // Gap found
+      break
+    }
+  }
+
+  return streak
+}
+
