@@ -46,6 +46,7 @@ export async function getUserPoints(userId: string) {
   // fallback compute
   const { data: rows, error: rowsErr } = await supabase.from("point_transactions").select("amount").eq("user_id", userId)
   if (rowsErr) throw rowsErr
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (rows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
 }
 
@@ -130,7 +131,7 @@ export async function getStepBasePoints(step: number, speedIndex = 1) {
 
   const { data, error } = await supabase.from("step_base_points").select(col).eq("step", step).single()
   if (error || !data) return null
-  return Number((data as any)[col] || 0)
+  return Number((data as Record<string, unknown>)[col] || 0)
 }
 
 export async function computeDailyPoints(step: number, dayIndex: number, speedIndex = 1) {

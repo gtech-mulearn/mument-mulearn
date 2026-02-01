@@ -6,7 +6,7 @@ import React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Send, University, X } from "lucide-react"
+import { Send, X } from "lucide-react"
 import { Role } from "@/types/user"
 import { permissions } from "@/lib/permissions"
 import {

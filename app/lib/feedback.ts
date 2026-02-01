@@ -69,20 +69,21 @@ export async function getFeedbackInbox() {
     if (!feedbackData || feedbackData.length === 0) return []
 
     // 2. Collect IDs
-    const userIds = Array.from(new Set(feedbackData.map((f: any) => f.created_by).filter(Boolean)))
-    const campusIds = Array.from(new Set(feedbackData.map((f: any) => f.campus_id).filter(Boolean)))
+    // 2. Collect IDs
+    const userIds = Array.from(new Set(feedbackData.map((f) => f.created_by).filter(Boolean)))
+    const campusIds = Array.from(new Set(feedbackData.map((f) => f.campus_id).filter(Boolean)))
 
     // 3. Fetch Linked Data in Parallel
     const [profilesResult, collegesResult] = await Promise.all([
-        supabase.from("profiles").select("id, full_name").in("id", userIds),
-        supabase.from("colleges").select("id, name").in("id", campusIds)
+        supabase.from("profiles").select("id, full_name").in("id", userIds as string[]),
+        supabase.from("colleges").select("id, name").in("id", campusIds as string[])
     ])
 
-    const profileMap = new Map(profilesResult.data?.map((p: any) => [p.id, p]) || [])
-    const collegeMap = new Map(collegesResult.data?.map((c: any) => [c.id, c]) || [])
+    const profileMap = new Map(profilesResult.data?.map((p) => [p.id, p]) || [])
+    const collegeMap = new Map(collegesResult.data?.map((c) => [c.id, c]) || [])
 
     // 4. Combine Data
-    const formattedData: FeedbackView[] = feedbackData.map((f: any) => ({
+    const formattedData: FeedbackView[] = feedbackData.map((f) => ({
         ...f,
         profiles: profileMap.get(f.created_by) || null,
         colleges: f.campus_id ? collegeMap.get(f.campus_id) : null

@@ -1,6 +1,5 @@
 
 import { createClient } from "@/lib/supabase/server"
-import { Database } from "@/types/database.types"
 import { Role } from "@/types/user"
 
 export type AdminUserView = {
@@ -59,6 +58,7 @@ export async function getUsers(filters: UserFilters = {}, limit = 50, offset = 0
     }
 
     // Flatten the joined data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const users = data.map((u: any) => ({
         ...u,
         district_name: u.districts?.name,

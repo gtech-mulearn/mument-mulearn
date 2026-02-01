@@ -81,7 +81,8 @@ export async function getCampusStats(): Promise<CampusStat[]> {
 
     const countMap = new Map<string, number>()
 
-    profiles.forEach((p: any) => {
+    profiles.forEach((p) => {
+        // @ts-expect-error - Supabase type inference limitation for joins
         const name = p.colleges?.name || "Unknown"
         countMap.set(name, (countMap.get(name) || 0) + 1)
     })
@@ -108,7 +109,8 @@ export async function getDistrictStats(): Promise<DistrictStat[]> {
 
     const countMap = new Map<string, number>()
 
-    profiles.forEach((p: any) => {
+    profiles.forEach((p) => {
+        // @ts-expect-error - Supabase type inference limitation for joins
         const name = p.districts?.name || "Unknown"
         countMap.set(name, (countMap.get(name) || 0) + 1)
     })

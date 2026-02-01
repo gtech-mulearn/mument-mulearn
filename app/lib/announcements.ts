@@ -1,7 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { getMyProfile } from "@/lib/profile"
 import { Database } from "@/types/database.types"
-
 
 
 export type Announcement = Database["public"]["Tables"]["announcements"]["Row"]

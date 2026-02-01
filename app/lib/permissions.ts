@@ -22,7 +22,7 @@ export const permissions = {
   },
 
   // --- Feedback ---
-  canSubmitFeedback(_role: Role) {
+  canSubmitFeedback() {
     return true // Everyone
   },
 
