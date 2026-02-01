@@ -1,7 +1,9 @@
 'use client';
 
-import { Search, X, ChevronDown, Calendar } from "lucide-react";
+import { Search, X, ChevronDown, Calendar, Download } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { Role } from "@/types/user";
+import { exportToExcel } from "@/lib/excel-export";
 
 interface FilterBarProps {
     keyword: string;
@@ -15,6 +17,16 @@ interface FilterBarProps {
     colleges: string[];
     totalUpdates: number;
     filteredUpdates: number;
+    role: Role;
+    filteredData?: Array<{
+        id: string;
+        user_name: string;
+        college?: string;
+        college_name?: string | null;
+        content: string;
+        created_at: string;
+        upvote_count: number;
+    }>;
 }
 
 export default function FilterBar({
@@ -28,11 +40,25 @@ export default function FilterBar({
     setSort,
     colleges,
     totalUpdates,
-    filteredUpdates
+    filteredUpdates,
+    role,
+    filteredData = []
 }: FilterBarProps) {
     const [collegeSearch, setCollegeSearch] = useState('');
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const handleExcelExport = async () => {
+        try {
+            setIsExporting(true);
+            await exportToExcel(filteredData, 'daily-updates', 'Daily Updates');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Failed to export to Excel');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -273,6 +299,17 @@ export default function FilterBar({
             <p className="text-sm text-slate-500 mt-3">
                 Showing {filteredUpdates} of {totalUpdates} updates
             </p>
+            {role === "admin" && (
+                <button
+                    type="button"
+                    onClick={handleExcelExport}
+                    disabled={isExporting || filteredUpdates === 0}
+                    className="w-full mt-3 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed border border-green-600 font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                    <Download size={16} />
+                    {isExporting ? 'Exporting...' : 'Export to Excel'}
+                </button>
+            )}
         </div>
     );
 }

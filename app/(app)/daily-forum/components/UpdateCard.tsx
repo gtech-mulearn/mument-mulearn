@@ -45,7 +45,7 @@ export default function UpdateCard({
                         <div>
                             <Calendar size={14} className="inline-block mr-1 text-slate-400" />
                             <span className="text-sm text-slate-500">
-                                {update.created_at ? new Date(update.created_at).toLocaleDateString() : 'N/A'}
+                                {update.created_at ? new Date(update.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                             </span>
                         </div>
                     </div>

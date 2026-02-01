@@ -1,4 +1,5 @@
 import { getDailyUpdates } from "@/lib/daily-updates";
+import { getMyProfile } from "@/lib/profile";
 import { Suspense } from "react";
 import DailyForumFilter from "./components/DailyForumFilter";
 
@@ -20,6 +21,7 @@ function LoadingSkeleton() {
 
 async function DailyForumContent() {
     const dailyUpdates = await getDailyUpdates();
+    const userProfile = await getMyProfile();
 
     if (dailyUpdates.length === 0) {
         return (
@@ -36,7 +38,7 @@ async function DailyForumContent() {
         .sort();
 
     return (
-        <DailyForumFilter dailyUpdates={dailyUpdates} colleges={colleges} />
+        <DailyForumFilter dailyUpdates={dailyUpdates} colleges={colleges} role={userProfile?.role} />
     );
 }
 

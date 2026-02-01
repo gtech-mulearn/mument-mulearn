@@ -3,8 +3,20 @@
 import { useState } from "react";
 import FilterBar from "./FilterBar";
 import UpdateCard from "./UpdateCard";
+import { Role } from "@/types/user";
 
 interface DailyUpdate {
+    id: string;
+    content: string;
+    user_name: string;
+    college_name?: string | null;
+    college?: string;
+    created_at: string;
+    upvote_count: number;
+    hasUpvoted?: boolean;
+}
+
+interface UpdateCardDailyUpdate {
     id: string;
     content: string;
     user_name?: string;
@@ -14,7 +26,7 @@ interface DailyUpdate {
     hasUpvoted?: boolean;
 }
 
-export default function DailyForumFilter({ dailyUpdates, colleges }: { dailyUpdates: DailyUpdate[]; colleges: string[] }) {
+export default function DailyForumFilter({ dailyUpdates, colleges, role }: { dailyUpdates: DailyUpdate[]; colleges: string[]; role?: Role }) {
     const [keyword, setKeyword] = useState('');
     const [college, setCollege] = useState('');
     const [date, setDate] = useState('');
@@ -151,21 +163,29 @@ export default function DailyForumFilter({ dailyUpdates, colleges }: { dailyUpda
                 colleges={colleges}
                 totalUpdates={dailyUpdates.length}
                 filteredUpdates={filteredUpdates.length}
+                role={role || 'participant'}
+                filteredData={filteredUpdates}
             />
 
             {filteredUpdates.length > 0 ? (
                 <div>
-                    {filteredUpdates.map((entry: DailyUpdate, index: number) => (
-                        <UpdateCard
-                            key={entry.id}
-                            update={entry}
-                            index={index}
-                            upvoting={upvoting}
-                            hasUpvoted={upvotedUpdates.has(entry.id)}
-                            upvoteCount={upvoteCounts[entry.id] || 0}
-                            onUpvote={handleUpvote}
-                        />
-                    ))}
+                    {filteredUpdates.map((entry, index: number) => {
+                        const updateData: UpdateCardDailyUpdate = {
+                            ...entry,
+                            college_name: entry.college_name || entry.college || undefined
+                        };
+                        return (
+                            <UpdateCard
+                                key={entry.id}
+                                update={updateData}
+                                index={index}
+                                upvoting={upvoting}
+                                hasUpvoted={upvotedUpdates.has(entry.id)}
+                                upvoteCount={upvoteCounts[entry.id] || 0}
+                                onUpvote={handleUpvote}
+                            />
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="text-center py-8 text-slate-500">

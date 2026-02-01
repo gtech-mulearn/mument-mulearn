@@ -45,7 +45,7 @@ export default function CreateCheckpoint({ availableTeams = [] }: CreateCheckpoi
                 <form action={onSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Week Number</label>
-                        <input name="week_number" type="number" required placeholder="e.g. 1" className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+                        <input name="week_number" type="number" min={1} max={4} required placeholder="e.g. 1" className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
                     </div>
 
                     <div>
