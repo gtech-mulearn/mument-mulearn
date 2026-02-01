@@ -1,7 +1,7 @@
 'use client';
 
 import ComingSoon from '@/components/ComingSoon';
-import { Flame, Star, Trophy, Zap, Crown } from 'lucide-react';
+import { Flame, Star, Trophy, Zap, Crown, Lightbulb } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -28,55 +28,55 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
       id: 'spark',
       name: 'Spark',
       description: 'Start your journey',
-      icon: <Zap size={24} />,
+      icon: <Zap size={24} className='fill-white'/>,
       milestone: 1,
-      color: 'from-yellow-400 to-yellow-600',
+      color: 'bg-yellow-500',
       unlocked: streak >= 1,
     },
     {
       id: 'rising-star',
       name: 'Rising Star',
       description: 'Build momentum',
-      icon: <Star size={24} />,
+      icon: <Star size={24} className='fill-white'/>,
       milestone: 3,
-      color: 'from-blue-400 to-blue-600',
+      color: 'bg-blue-500',
       unlocked: streak >= 3,
     },
     {
       id: 'flame',
       name: 'On Fire',
       description: 'Keep the heat on',
-      icon: <Flame size={24} />,
+      icon: <Flame size={24} className='fill-white'/>,
       milestone: 7,
-      color: 'from-orange-400 to-red-600',
+      color: 'bg-orange-500',
       unlocked: streak >= 7,
     },
     {
       id: 'champion',
       name: 'Champion',
       description: 'Legendary streak',
-      icon: <Trophy size={24} />,
+      icon: <Trophy size={24} className='fill-white'/>,
       milestone: 14,
-      color: 'from-purple-400 to-purple-600',
+      color: 'bg-purple-500',
       unlocked: streak >= 14,
     },
     {
       id: 'crown',
       name: 'Crown Holder',
       description: 'Mument Legend',
-      icon: <Crown size={24} />,
+      icon: <Crown size={24} className='fill-white'/>,
       milestone: 30,
-      color: 'from-yellow-300 to-yellow-600',
+      color: 'bg-yellow-500',
       unlocked: streak >= 30,
     },
   ];
 
   const milestones = [
-    { day: 3, reward: 'Rising Star Badge + 50 Points', emoji: '⭐' },
-    { day: 7, reward: 'On Fire Badge + 100 Points', emoji: '🔥' },
-    { day: 14, reward: 'Champion Badge + 250 Points', emoji: '🏆' },
-    { day: 21, reward: 'Exclusive Discord Role', emoji: '👑' },
-    { day: 30, reward: 'Crown Holder Badge + 500 Points + Recognition', emoji: '👑' },
+    { day: 3, reward: 'Rising Star Badge + 50 Points', emoji: <Star size={24} className='fill-blue-500 text-blue-500 inline-block' /> },
+    { day: 7, reward: 'On Fire Badge + 100 Points', emoji: <Flame size={24} className='fill-orange-500 text-orange-500 inline-block' /> },
+    { day: 14, reward: 'Champion Badge + 250 Points', emoji: <Trophy size={24} className='fill-purple-500 text-purple-500 inline-block' /> },
+    { day: 21, reward: 'Exclusive Discord Role', emoji: <Crown size={24} className='fill-yellow-500 text-yellow-500 inline-block' /> },
+    { day: 30, reward: 'Crown Holder Badge + 500 Points + Recognition', emoji: <Crown size={24} className='fill-yellow-500 text-yellow-500 inline-block' /> },
   ];
 
   const getProgressPercentage = (milestone: number) => {
@@ -90,7 +90,7 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
   return (
     <div className="w-full space-y-6">
       {/* Streak Counter Header */}
-      <div className="bg-linear-to-r from-orange-500 via-red-500 to-pink-500 rounded-2xl p-8 text-white shadow-lg">
+      <div className="bg-blue-500 rounded-2xl p-8 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium opacity-90">Current Streak</p>
@@ -147,8 +147,8 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
                 key={badge.id}
                 className={`relative p-6 rounded-xl transition-all duration-300 ${
                   badge.unlocked
-                    ? `bg-linear-to-br ${badge.color} text-white shadow-lg scale-100`
-                    : 'bg-slate-100 text-slate-400 grayscale'
+                    ? `${badge.color} text-white shadow-lg scale-100`
+                    : 'bg-slate-100 text-slate-600 grayscale'
                 }`}
               >
                 <div className={`${badge.unlocked ? 'opacity-100' : 'opacity-40'} transition-opacity`}>
@@ -191,7 +191,7 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
                   isComplete
                     ? 'bg-green-50 border-green-200'
                     : isNext
-                    ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
+                    ? 'bg-blue-50 border-blue-200'
                     : 'bg-slate-50 border-slate-200'
                 }`}
               >
@@ -237,8 +237,8 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
       )}
 
       {/* Tips Section */}
-      <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-        <h3 className="font-bold text-slate-900 mb-3">💡 Tips to Maintain Your Streak</h3>
+      <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+        <h3 className="font-bold text-slate-900 mb-3"><Lightbulb className="inline-block size-4" /> Tips to Maintain Your Streak</h3>
         <ul className="space-y-2 text-sm text-slate-700">
           <li className="flex items-center gap-2">
             <span className="w-2 h-2 bg-blue-500 rounded-full" />

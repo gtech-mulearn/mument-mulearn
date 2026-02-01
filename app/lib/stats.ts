@@ -66,30 +66,38 @@ export async function getDailyUpdateStats(): Promise<DailyUpdateStat[]> {
 export async function getCampusStats(): Promise<CampusStat[]> {
     const supabase = await createClient()
 
-    // Fetch profiles with campus info
-    // Ideally use RPC for aggregation: SELECT campus_id, COUNT(*) ...
-    // Using JS aggregation for MVP
+    // Fetch only campus_id to avoid large headers from joining colleges
     const { data: profiles } = await supabase
         .from("profiles")
-        .select(`
-            campus_id,
-            colleges ( name )
-        `)
+        .select("campus_id")
         .not("campus_id", "is", null)
 
     if (!profiles) return []
 
+    // Group by campus_id
     const countMap = new Map<string, number>()
-
     profiles.forEach((p) => {
-        // @ts-expect-error - Supabase type inference limitation for joins
-        const name = p.colleges?.name || "Unknown"
-        countMap.set(name, (countMap.get(name) || 0) + 1)
+        if (p.campus_id) {
+            countMap.set(p.campus_id, (countMap.get(p.campus_id) || 0) + 1)
+        }
     })
+
+    // Get college names for the top campuses
+    const topCampusIds = Array.from(countMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([id]) => id)
+
+    const { data: colleges } = await supabase
+        .from("colleges")
+        .select("id, name")
+        .in("id", topCampusIds)
+
+    const collegeMap = new Map(colleges?.map(c => [c.id, c.name]) || [])
 
     // Sort by count desc and take top 5
     return Array.from(countMap.entries())
-        .map(([name, count]) => ({ name, count }))
+        .map(([campusId, count]) => ({ name: collegeMap.get(campusId) || "Unknown", count }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5)
 }
@@ -97,25 +105,32 @@ export async function getCampusStats(): Promise<CampusStat[]> {
 export async function getDistrictStats(): Promise<DistrictStat[]> {
     const supabase = await createClient()
 
+    // Fetch only district_id to avoid large headers from joining districts
     const { data: profiles } = await supabase
         .from("profiles")
-        .select(`
-            district_id,
-            districts ( name )
-        `)
+        .select("district_id")
         .not("district_id", "is", null)
 
     if (!profiles) return []
 
+    // Group by district_id
     const countMap = new Map<string, number>()
-
     profiles.forEach((p) => {
-        // @ts-expect-error - Supabase type inference limitation for joins
-        const name = p.districts?.name || "Unknown"
-        countMap.set(name, (countMap.get(name) || 0) + 1)
+        if (p.district_id) {
+            countMap.set(p.district_id, (countMap.get(p.district_id) || 0) + 1)
+        }
     })
 
+    // Get district names
+    const districtIds = Array.from(countMap.keys())
+    const { data: districts } = await supabase
+        .from("districts")
+        .select("id, name")
+        .in("id", districtIds)
+
+    const districtMap = new Map(districts?.map(d => [d.id, d.name]) || [])
+
     return Array.from(countMap.entries())
-        .map(([name, count]) => ({ name, count }))
+        .map(([districtId, count]) => ({ name: districtMap.get(districtId) || "Unknown", count }))
         .sort((a, b) => b.count - a.count)
 }

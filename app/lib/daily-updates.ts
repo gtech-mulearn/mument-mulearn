@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 
-export async function getDailyUpdates() {
+export async function getDailyUpdates(limit: number = 10, offset: number = 0, sortBy: 'recent' | 'oldest' | 'upvotes' = 'recent') {
   const supabase = await createClient()
 
   // Get current user for upvote check
@@ -8,10 +8,21 @@ export async function getDailyUpdates() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: daily_updates, error } = await supabase
+  // For upvotes sorting, we need to fetch all updates first since we need the upvote counts
+  // For date-based sorting, we can use direct database ordering
+  let query = supabase
     .from("daily_updates")
-    .select("*")
-    .order("created_at", { ascending: false })
+    .select("*", { count: 'exact' })
+
+  // Apply date-based ordering at database level
+  if (sortBy === 'recent') {
+    query = query.order("created_at", { ascending: false })
+  } else if (sortBy === 'oldest') {
+    query = query.order("created_at", { ascending: true })
+  }
+  // For upvotes, we'll fetch all and sort client-side to include upvote counts
+
+  const { data: daily_updates, error } = await query.range(offset, offset + limit - 1)
 
   if (error) {
     console.error("Error fetching daily updates:", error)

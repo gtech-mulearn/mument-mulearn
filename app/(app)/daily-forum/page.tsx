@@ -19,8 +19,10 @@ function LoadingSkeleton() {
     );
 }
 
-async function DailyForumContent() {
-    const dailyUpdates = await getDailyUpdates();
+async function DailyForumContent({ page = 1, sort = 'recent' }: { page?: number; sort?: string }) {
+    const limit = 50;
+    const offset = (page - 1) * limit;
+    const dailyUpdates = await getDailyUpdates(limit, offset, sort as 'recent' | 'oldest' | 'upvotes');
     const userProfile = await getMyProfile();
 
     if (dailyUpdates.length === 0) {
@@ -38,11 +40,14 @@ async function DailyForumContent() {
         .sort();
 
     return (
-        <DailyForumFilter dailyUpdates={dailyUpdates} colleges={colleges} role={userProfile?.role} />
+        <DailyForumFilter dailyUpdates={dailyUpdates} colleges={colleges} role={userProfile?.role} page={page} limit={limit} />
     );
 }
 
-export default function DailyForumPage() {
+export default function DailyForumPage({ searchParams }: { searchParams: { page?: string; sort?: string } }) {
+    const page = parseInt(searchParams?.page || "1", 10);
+    const sort = searchParams?.sort || 'recent';
+    
     return (
         <div>
             <header className="mb-6">
@@ -53,7 +58,7 @@ export default function DailyForumPage() {
                 </div>
             </header>
             <Suspense fallback={<LoadingSkeleton />}>
-                <DailyForumContent />
+                <DailyForumContent page={page} sort={sort} />
             </Suspense>
         </div>
     );

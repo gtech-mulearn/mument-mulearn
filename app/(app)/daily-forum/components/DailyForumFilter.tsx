@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import FilterBar from "./FilterBar";
 import UpdateCard from "./UpdateCard";
 import { Role } from "@/types/user";
@@ -26,11 +27,14 @@ interface UpdateCardDailyUpdate {
     hasUpvoted?: boolean;
 }
 
-export default function DailyForumFilter({ dailyUpdates, colleges, role }: { dailyUpdates: DailyUpdate[]; colleges: string[]; role?: Role }) {
+export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 1, limit = 50, initialSort = 'recent' }: { dailyUpdates: DailyUpdate[]; colleges: string[]; role?: Role; page?: number; limit?: number; initialSort?: string }) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    
     const [keyword, setKeyword] = useState('');
     const [college, setCollege] = useState('');
     const [date, setDate] = useState('');
-    const [sort, setSort] = useState('recent');
+    const [sort, setSort] = useState(initialSort);
     const [upvoting, setUpvoting] = useState<string | null>(null);
     const [upvotedUpdates, setUpvotedUpdates] = useState<Set<string>>(
         new Set(dailyUpdates.filter(u => u.hasUpvoted).map(u => u.id))
@@ -41,6 +45,12 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role }: { dai
             return acc;
         }, {} as Record<string, number>)
     );
+
+    const handleSortChange = (newSort: string) => {
+        setSort(newSort);
+        // Reset to page 1 and update URL with new sort
+        router.push(`?page=1&sort=${newSort}`);
+    };
 
     const filteredUpdates = dailyUpdates.filter((entry: DailyUpdate) => {
         const keywordMatch = keyword === '' ||
@@ -58,11 +68,9 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role }: { dai
 
         return keywordMatch && collegeMatch && dateMatch;
     }).sort((a, b) => {
-        if (sort === 'recent') {
-            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-        } else if (sort === 'oldest') {
-            return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
-        } else if (sort === 'upvotes') {
+        // Note: Server-side sorting handles date-based ordering
+        // Client-side sorting only for client-side filters
+        if (sort === 'upvotes') {
             return (upvoteCounts[b.id] || 0) - (upvoteCounts[a.id] || 0);
         }
         return 0;
@@ -159,7 +167,7 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role }: { dai
                 date={date}
                 setDate={setDate}
                 sort={sort}
-                setSort={setSort}
+                setSort={handleSortChange}
                 colleges={colleges}
                 totalUpdates={dailyUpdates.length}
                 filteredUpdates={filteredUpdates.length}
@@ -186,6 +194,30 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role }: { dai
                             />
                         );
                     })}
+                    
+                    {/* Pagination Controls */}
+                    <div className="mt-8 flex items-center justify-between border-t pt-4">
+                        <div className="text-sm text-slate-600">
+                            Showing page <span className="font-semibold">{page}</span> with <span className="font-semibold">{dailyUpdates.length}</span> items
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => router.push(`?page=${Math.max(1, page - 1)}&sort=${sort}`)}
+                                disabled={page === 1}
+                                className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                            >
+                                ← Previous
+                            </button>
+                            <span className="px-4 py-2 text-slate-600">Page {page}</span>
+                            <button
+                                onClick={() => router.push(`?page=${page + 1}&sort=${sort}`)}
+                                disabled={dailyUpdates.length < limit}
+                                className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    </div>
                 </div>
             ) : (
                 <div className="text-center py-8 text-slate-500">
