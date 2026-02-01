@@ -195,7 +195,16 @@ export async function createUserAction(data: {
     if (authError) {
         // Handle case where auth user exists but profile might be missing
         if (authError.message.includes("already been registered")) {
-            const { data: usersData } = await supabaseAdmin.auth.admin.listUsers()
+            // Try to find the user via listUsers (Note: this only fetches the first 50 users by default)
+            // Ideally Supabase Admin SDK should have getUserByEmail, but listUsers is the standard alternative.
+            // We increase the limit to ensure we find them if possible (though effectively fetching all is better)
+            const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+
+            if (listError || !usersData) {
+                console.error("Failed to list users:", listError)
+                throw new Error("User exists but failed to retrieve details to update.")
+            }
+
             const existingUser = usersData.users.find(u => u.email === data.email)
 
             if (existingUser) {
@@ -203,10 +212,10 @@ export async function createUserAction(data: {
                 // Update credentials for existing user
                 await supabaseAdmin.auth.admin.updateUserById(userId, {
                     password: data.password,
-                    user_metadata: { full_name: data.full_name }
+                    user_metadata: { full_name: data.full_name, email_confirm: true }
                 })
             } else {
-                throw new Error("User email exists but account not found.")
+                throw new Error("User email is registered but could not be found in the user list (check if over 1000 users).")
             }
         } else {
             throw new Error(authError.message)
