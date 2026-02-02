@@ -1,6 +1,6 @@
 "use client"
 
-import { Users, Flame, MessageSquare, Check , TrendingUp, AlertOctagon , ArrowBigUpDash, Calendar } from "lucide-react"
+import { Flame, Check, TrendingUp, AlertOctagon , ArrowBigUpDash, Calendar } from "lucide-react"
 
 interface PersonalStatData {
     totalUpdates?: number
@@ -62,10 +62,10 @@ export default function PersonalStats({ stats }: Props) {
             {/* Today's Update Status */}
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex flex-col">
                         <h3 className="text-lg font-semibold text-slate-700 mb-1">Today's Update</h3>
-                        <p className="text-sm text-slate-600">One update per day</p>
-                    </div>
+                        <p className="text-sm text-slate-600">One update per day - Keeps the µment going!</p>
+                        </div>
                     <div className={`flex items-center justify-center w-16 h-16 rounded-full ${stats.hasUpdatedToday ? 'bg-green-100' : 'bg-gray-100'}`}>
                         {stats.hasUpdatedToday ? (
                             <Check className="w-8 h-8 text-green-600" />

@@ -90,24 +90,20 @@ export async function getCampusStats(): Promise<CampusStat[]> {
         }
     })
 
-    // Get college names for the top campuses
-    const topCampusIds = Array.from(countMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([id]) => id)
+    // Get college names for all campuses
+    const allCampusIds = Array.from(countMap.keys())
 
     const { data: colleges } = await supabase
         .from("colleges")
         .select("id, name")
-        .in("id", topCampusIds)
+        .in("id", allCampusIds)
 
     const collegeMap = new Map(colleges?.map(c => [c.id, c.name]) || [])
 
-    // Sort by count desc and take top 5
+    // Sort by count desc and return all
     return Array.from(countMap.entries())
         .map(([campusId, count]) => ({ name: collegeMap.get(campusId) || "Unknown", count }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 5)
 }
 
 export async function getDistrictStats(): Promise<DistrictStat[]> {
