@@ -307,7 +307,7 @@ export default function DailyUpdateClient() {
               </div>
               <h3 className="text-xl font-bold text-slate-800">Awesome Job!</h3>
               <p className="text-slate-600 text-sm leading-relaxed">
-                Thank you for submitting your daily update! You're getting started in the MuMoment journey.
+                Thank you for submitting your daily update! You're getting started in the µment journey.
               </p>
               <p className="text-slate-600 text-sm font-medium">
                 Consistency is key. 30 days of updates will transform you into something big. Keep building that mindset!

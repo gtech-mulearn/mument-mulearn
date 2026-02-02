@@ -1,7 +1,7 @@
 'use client';
 
 import ComingSoon from '@/components/ComingSoon';
-import { Flame, Star, Trophy, Zap, Crown, Lightbulb } from 'lucide-react';
+import { Flame, Star, Trophy, Zap, Crown, Lightbulb, Wand2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -72,11 +72,11 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
   ];
 
   const milestones = [
-    { day: 3, reward: 'Rising Star Badge + 50 Points', emoji: <Star size={24} className='fill-blue-500 text-blue-500 inline-block' /> },
-    { day: 7, reward: 'On Fire Badge + 100 Points', emoji: <Flame size={24} className='fill-orange-500 text-orange-500 inline-block' /> },
-    { day: 14, reward: 'Champion Badge + 250 Points', emoji: <Trophy size={24} className='fill-purple-500 text-purple-500 inline-block' /> },
-    { day: 21, reward: 'Exclusive Discord Role', emoji: <Crown size={24} className='fill-yellow-500 text-yellow-500 inline-block' /> },
-    { day: 30, reward: 'Crown Holder Badge + 500 Points + Recognition', emoji: <Crown size={24} className='fill-yellow-500 text-yellow-500 inline-block' /> },
+    { day: 3, reward: 'Rising Star Badge', description: 'Build momentum', emoji: <Star size={24} className='fill-blue-500 text-blue-500 inline-block' /> },
+    { day: 7, reward: 'On Fire Badge', description: 'Keep the heat on', emoji: <Flame size={24} className='fill-orange-500 text-orange-500 inline-block' /> },
+    { day: 14, reward: 'Magic Badge', description: 'Unlock magic powers', emoji:<Wand2 size={24} className='fill-purple-500 text-purple-500 inline-block' /> },
+    { day: 21, reward: 'Champion Badge', description: 'Become a champion', emoji: <Trophy size={24} className='fill-yellow-500 text-yellow-500 inline-block' /> },
+    { day: 30, reward: 'Crown Holder Badge + Recognition', description: 'Prepare for Demo day', emoji: <Crown size={24} className='fill-red-500 text-red-500 inline-block' /> },
   ];
 
   const getProgressPercentage = (milestone: number) => {
@@ -200,7 +200,8 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
                     <span className="text-3xl">{milestone.emoji}</span>
                     <div>
                       <h4 className="font-bold text-slate-900">Day {milestone.day}</h4>
-                      <p className="text-sm text-slate-600">{milestone.reward}</p>
+                      <p className="text-sm text-slate-600">{milestone.reward}<span className="text-xs text-slate-500"> - {milestone.description}</span></p>
+                      
                     </div>
                   </div>
                   {isComplete && <span className="text-green-600 font-bold text-sm">✓ UNLOCKED</span>}

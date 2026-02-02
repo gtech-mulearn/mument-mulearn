@@ -41,7 +41,7 @@ export default function FeedbackSubmitPage() {
 
             show({ title: "Feedback submitted", description: "Thanks for your input!" })
             // navigate after a short delay so user sees toast
-            setTimeout(() => router.push("/app/feedback/my-feedback"), 700)
+            setTimeout(() => router.push("/feedback/my-feedback"), 700)
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : String(err)
             show({ title: "Error", description: message })

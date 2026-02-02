@@ -3,6 +3,7 @@ import Link from "next/link"
 
 interface ProfileCardProps {
   profile: {
+    id?: string | null
     full_name?: string | null
     role?: string | null
     created_at?: string | null

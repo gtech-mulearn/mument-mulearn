@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2, MoveLeft, MoveRight } from "lucide-react";
 import FilterBar from "./FilterBar";
 import UpdateCard from "./UpdateCard";
 import { Role } from "@/types/user";
@@ -31,10 +32,18 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    const [keyword, setKeyword] = useState('');
-    const [college, setCollege] = useState('');
-    const [date, setDate] = useState('');
-    const [sort, setSort] = useState(initialSort);
+    // Read all filter params from URL to ensure they're always in sync
+    const urlPage = parseInt(searchParams.get('page') || '1', 10);
+    const urlSort = searchParams.get('sort') || initialSort;
+    const urlKeyword = searchParams.get('keyword') || '';
+    const urlCollege = searchParams.get('college') || '';
+    const urlDate = searchParams.get('date') || '';
+    
+    const [keyword, setKeyword] = useState(urlKeyword);
+    const [college, setCollege] = useState(urlCollege);
+    const [date, setDate] = useState(urlDate);
+    const [sort, setSort] = useState(urlSort);
+    const [isLoading, setIsLoading] = useState(false);
     const [upvoting, setUpvoting] = useState<string | null>(null);
     const [upvotedUpdates, setUpvotedUpdates] = useState<Set<string>>(
         new Set(dailyUpdates.filter(u => u.hasUpvoted).map(u => u.id))
@@ -48,8 +57,15 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
 
     const handleSortChange = (newSort: string) => {
         setSort(newSort);
-        // Reset to page 1 and update URL with new sort
-        router.push(`?page=1&sort=${newSort}`);
+        setIsLoading(true);
+        // Reset to page 1 but preserve current filters
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        params.set('sort', newSort);
+        if (keyword) params.set('keyword', keyword);
+        if (college) params.set('college', college);
+        if (date) params.set('date', date);
+        router.push(`?${params.toString()}`);
     };
 
     const filteredUpdates = dailyUpdates.filter((entry: DailyUpdate) => {
@@ -75,6 +91,18 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
         }
         return 0;
     });
+
+    // Handle loading state when page changes
+    useEffect(() => {
+        setIsLoading(false);
+    }, [urlPage, filteredUpdates.length]);
+
+    // Paginate filtered results
+    const itemsPerPage = limit;
+    const totalPages = Math.ceil(filteredUpdates.length / itemsPerPage);
+    const currentPage = Math.max(1, Math.min(urlPage, totalPages));
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const paginatedUpdates = filteredUpdates.slice(startIdx, startIdx + itemsPerPage);
 
     const handleUpvote = async (updateId: string) => {
         setUpvoting(updateId);
@@ -170,14 +198,28 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
                 setSort={handleSortChange}
                 colleges={colleges}
                 totalUpdates={dailyUpdates.length}
-                filteredUpdates={filteredUpdates.length}
+                filteredUpdates={paginatedUpdates.length}
                 role={role || 'participant'}
                 filteredData={filteredUpdates}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
             />
 
             {filteredUpdates.length > 0 ? (
-                <div>
-                    {filteredUpdates.map((entry, index: number) => {
+                <div className="relative">
+                    {isLoading && (
+                        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 backdrop-blur-sm">
+                            <div className="flex flex-col items-center gap-3 p-8">
+                                <div className="animate-spin">
+                                    <Loader2 size={32} className="text-blue-500" />
+                                </div>
+                                <span className="text-sm text-slate-600 font-medium">Loading...</span>
+                            </div>
+                        </div>
+                    )}
+                    <div className={isLoading ? 'opacity-50 pointer-events-none' : ''}>
+                    {paginatedUpdates.map((entry, index: number) => {
                         const updateData: UpdateCardDailyUpdate = {
                             ...entry,
                             college_name: entry.college_name || entry.college || undefined
@@ -198,25 +240,35 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
                     {/* Pagination Controls */}
                     <div className="mt-8 flex items-center justify-between border-t pt-4">
                         <div className="text-sm text-slate-600">
-                            Showing page <span className="font-semibold">{page}</span> with <span className="font-semibold">{dailyUpdates.length}</span> items
+                            Showing <span className="font-semibold">{paginatedUpdates.length}</span> of <span className="font-semibold">{filteredUpdates.length}</span> results.
                         </div>
                         <div className="flex gap-2">
                             <button
-                                onClick={() => router.push(`?page=${Math.max(1, page - 1)}&sort=${sort}`)}
-                                disabled={page === 1}
-                                className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                                onClick={() => {
+                                    setIsLoading(true);
+                                    router.push(`?page=${Math.max(1, currentPage - 1)}&sort=${sort}`);
+                                    
+
+                                }}
+                                disabled={currentPage === 1 || isLoading}
+                                className={`px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors`}
                             >
-                                ← Previous
+                                <MoveLeft />
                             </button>
-                            <span className="px-4 py-2 text-slate-600">Page {page}</span>
+                            <span className="px-4 py-2 text-slate-600">Page {currentPage}/{totalPages}</span>
                             <button
-                                onClick={() => router.push(`?page=${page + 1}&sort=${sort}`)}
-                                disabled={dailyUpdates.length < limit}
-                                className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                                onClick={() => {
+                                    setIsLoading(true);
+                                    router.push(`?page=${currentPage + 1}&sort=${sort}`);
+                                    
+                                }}
+                                disabled={currentPage >= totalPages || isLoading}
+                                className={`px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors`}
                             >
-                                Next →
+                                <MoveRight />
                             </button>
                         </div>
+                    </div>
                     </div>
                 </div>
             ) : (

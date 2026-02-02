@@ -2,6 +2,7 @@
 
 import { Search, X, ChevronDown, Calendar, Download } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Role } from "@/types/user";
 import { exportToExcel } from "@/lib/excel-export";
 
@@ -27,6 +28,9 @@ interface FilterBarProps {
         created_at: string;
         upvote_count: number;
     }>;
+    currentPage?: number;
+    totalPages?: number;
+    itemsPerPage?: number;
 }
 
 export default function FilterBar({
@@ -42,12 +46,51 @@ export default function FilterBar({
     totalUpdates,
     filteredUpdates,
     role,
-    filteredData = []
+    filteredData = [],
+    currentPage = 1,
+    totalPages = 1,
+    itemsPerPage = 50
 }: FilterBarProps) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [collegeSearch, setCollegeSearch] = useState('');
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const handleKeywordChange = (value: string) => {
+        setKeyword(value);
+        // Reset to page 1 but preserve sort and other filters
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        if (searchParams.get('sort')) params.set('sort', searchParams.get('sort') || 'recent');
+        if (value) params.set('keyword', value);
+        router.push(`?${params.toString()}`);
+    };
+
+    const handleCollegeChange = (value: string) => {
+        setCollege(value);
+        // Reset to page 1 but preserve sort and other filters
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        if (searchParams.get('sort')) params.set('sort', searchParams.get('sort') || 'recent');
+        if (searchParams.get('keyword')) params.set('keyword', searchParams.get('keyword') || '');
+        if (searchParams.get('date')) params.set('date', searchParams.get('date') || '');
+        if (value) params.set('college', value);
+        router.push(`?${params.toString()}`);
+    };
+
+    const handleDateChange = (value: string) => {
+        setDate(value);
+        // Reset to page 1 but preserve sort and other filters
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        if (searchParams.get('sort')) params.set('sort', searchParams.get('sort') || 'recent');
+        if (searchParams.get('keyword')) params.set('keyword', searchParams.get('keyword') || '');
+        if (searchParams.get('college')) params.set('college', searchParams.get('college') || '');
+        if (value) params.set('date', value);
+        router.push(`?${params.toString()}`);
+    };
 
     const handleExcelExport = async () => {
         try {
@@ -86,13 +129,13 @@ export default function FilterBar({
                         type="text"
                         placeholder="Search updates or username..."
                         value={keyword}
-                        onChange={(e) => setKeyword(e.target.value)}
+                        onChange={(e) => handleKeywordChange(e.target.value)}
                         className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-colors hover:border-gray-300"
                     />
                     {keyword && (
                         <button
                             type="button"
-                            onClick={() => setKeyword('')}
+                            onClick={() => handleKeywordChange('')}
                             className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                         >
                             <X size={14} />
@@ -123,7 +166,7 @@ export default function FilterBar({
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setCollege('');
+                                        handleCollegeChange('');
                                     }}
                                     className="p-0.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                                 >
@@ -155,7 +198,7 @@ export default function FilterBar({
                                        ${!college ? 'bg-blue-500/10 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}
                                    `}
                                     onClick={() => {
-                                        setCollege('');
+                                        handleCollegeChange('');
                                         setOpenDropdown(null);
                                         setCollegeSearch('');
                                     }}
@@ -169,7 +212,7 @@ export default function FilterBar({
                                            ${college === c ? 'bg-blue-500/10 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}
                                        `}
                                         onClick={() => {
-                                            setCollege(c);
+                                            handleCollegeChange(c);
                                             setOpenDropdown(null);
                                             setCollegeSearch('');
                                         }}
@@ -201,7 +244,7 @@ export default function FilterBar({
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setDate('');
+                                        handleDateChange('');
                                     }}
                                     className="p-0.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                                 >
@@ -218,7 +261,7 @@ export default function FilterBar({
                                 type="date"
                                 value={date}
                                 onChange={(e) => {
-                                    setDate(e.target.value);
+                                    handleDateChange(e.target.value);
                                     setOpenDropdown(null);
                                 }}
                                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
@@ -289,6 +332,11 @@ export default function FilterBar({
                         setKeyword('');
                         setCollege('');
                         setDate('');
+                        // Clear all filters but preserve sort
+                        const params = new URLSearchParams();
+                        params.set('page', '1');
+                        if (searchParams.get('sort')) params.set('sort', searchParams.get('sort') || 'recent');
+                        router.push(`?${params.toString()}`);
                     }}
                     className="w-full px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 border border-slate-300 font-medium text-sm transition-colors"
                 >
@@ -297,7 +345,7 @@ export default function FilterBar({
             )}
 
             <p className="text-sm text-slate-500 mt-3">
-                Showing {filteredUpdates} of {totalUpdates} updates
+                Showing {filteredUpdates} of {totalUpdates} updates (Page {currentPage} of {totalPages})
             </p>
             {role === "admin" && (
                 <button

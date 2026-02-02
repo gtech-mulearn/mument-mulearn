@@ -20,10 +20,10 @@ function LoadingSkeleton() {
 }
 
 async function DailyForumContent({ page = 1, sort = 'recent' }: { page?: number; sort?: string }) {
-    const limit = 50;
-    const offset = (page - 1) * limit;
-    const dailyUpdates = await getDailyUpdates(limit, offset, sort as 'recent' | 'oldest' | 'upvotes');
+    // Fetch all data for client-side filtering
+    const dailyUpdates = await getDailyUpdates(10000, 0, sort as 'recent' | 'oldest' | 'upvotes');
     const userProfile = await getMyProfile();
+    const limit = 50; // Items per page
 
     if (dailyUpdates.length === 0) {
         return (
