@@ -2,11 +2,15 @@
 
 import { updateFeedbackStatusAction } from "@/actions"
 import { Loader2, CheckCircle2, Clock, CheckCircle } from "lucide-react"
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 
 export default function FeedbackStatusSelect({ id, currentStatus }: { id: string, currentStatus: string }) {
     const [isPending, startTransition] = useTransition()
     const [status, setStatus] = useState(currentStatus || 'new')
+
+    useEffect(() => {
+        setStatus(currentStatus || 'new')
+    }, [currentStatus])
 
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newStatus = e.target.value
