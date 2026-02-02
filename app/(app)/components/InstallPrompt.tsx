@@ -81,7 +81,7 @@ export default function InstallPrompt() {
 
     if (isStandalone || isDismissed) return null
 
-    if (isStandalone || isDismissed) return null
+
 
     const showNotify = isSupported && !subscription
     const showInstall = !showNotify && showPrompt && deferredPrompt
@@ -91,53 +91,58 @@ export default function InstallPrompt() {
     if (!showNotify && !showInstall && !showManual) return null
 
     return (
-        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-8 md:w-96 bg-white p-4 rounded-xl shadow-2xl border border-slate-100 z-50 animate-in slide-in-from-bottom-10 fade-in duration-500">
-            <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-slate-800">
-                    {showInstall ? "Install App" : showManual ? "Install App" : "Enable Icons & Updates"}
-                </h3>
-                <button onClick={() => setShowPrompt(false)} className="text-slate-400 hover:text-slate-600">
-                    <X size={18} />
-                </button>
-            </div>
-
-            <p className="text-sm text-slate-500 mb-4">
-                {showInstall
-                    ? "Install Mument for the best experience and quick access."
-                    : showManual
-                        ? "Tap your browser menu and select 'Add to Home Screen' to install."
-                        : "Enable notifications to stay updated on your feedback."}
-            </p>
-
-            <div className="flex gap-2">
-                {showInstall && (
-                    <button
-                        onClick={handleInstall}
-                        className="flex-1 bg-brand-blue text-white py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
-                    >
-                        <Download size={16} /> Install
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+            <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-300 border border-slate-100">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <h3 className="font-bold text-xl text-slate-900 mb-1">
+                            {showInstall ? "Install App" : showManual ? "Install App" : "Enable Icons & Updates"}
+                        </h3>
+                    </div>
+                    {/* Only allow closing if dismissed or manually checking */}
+                    <button onClick={() => setShowPrompt(false)} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-full transition-colors">
+                        <X size={20} />
                     </button>
-                )}
+                </div>
 
-                {showNotify && (
-                    <button
-                        onClick={handleSubscribe}
-                        disabled={isLoading}
-                        className={`flex-1 ${!showInstall ? 'bg-brand-blue text-white' : 'bg-slate-100 text-slate-700'} py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                        <Bell size={16} />
-                        {isLoading ? "Enabling..." : "Enable Updates"}
-                    </button>
-                )}
+                <p className="text-sm text-slate-500 mb-4">
+                    {showInstall
+                        ? "Install Mument for the best experience and quick access."
+                        : showManual
+                            ? "Tap your browser menu and select 'Add to Home Screen' to install."
+                            : "Enable notifications to stay updated on your feedback."}
+                </p>
 
-                {showManual && (
-                    <button
-                        onClick={handleDismissForever}
-                        className="flex-1 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors"
-                    >
-                        Don't show again
-                    </button>
-                )}
+                <div className="flex gap-2">
+                    {showInstall && (
+                        <button
+                            onClick={handleInstall}
+                            className="flex-1 bg-brand-blue text-white py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
+                        >
+                            <Download size={16} /> Install
+                        </button>
+                    )}
+
+                    {showNotify && (
+                        <button
+                            onClick={handleSubscribe}
+                            disabled={isLoading}
+                            className={`flex-1 ${!showInstall ? 'bg-brand-blue text-white' : 'bg-slate-100 text-slate-700'} py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                            <Bell size={16} />
+                            {isLoading ? "Enabling..." : "Enable Updates"}
+                        </button>
+                    )}
+
+                    {showManual && (
+                        <button
+                            onClick={handleDismissForever}
+                            className="flex-1 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors"
+                        >
+                            Don't show again
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     )
