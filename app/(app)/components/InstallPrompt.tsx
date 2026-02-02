@@ -100,7 +100,7 @@ export default function InstallPrompt() {
                         </h3>
                     </div>
                     {/* Only allow closing if dismissed or manually checking */}
-                    <button onClick={() => setShowPrompt(false)} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-full transition-colors">
+                    <button onClick={handleDismissForever} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} />
                     </button>
                 </div>

@@ -27,6 +27,10 @@ export default function DashboardHeader({
         }
     }
 
+    const handleProfileClick = () => {
+        router.push('/profile')
+    }
+
     return (
         <header className="relative space-y-2">
 
@@ -56,7 +60,7 @@ export default function DashboardHeader({
 
                     {/* Streak Badge */}
                     {streak > 0 && (
-                        <div className="flex items-center gap-1.5 md:gap-3 px-2 md:px-3 py-1 md:py-1.5 bg-linear-to-r from-orange-500 to-red-600 text-white rounded-full shadow-lg hover:scale-105 transition-transform cursor-default" title="Maintain your streak!">
+                        <div className="flex items-center gap-1.5 md:gap-3 px-2 md:px-3 py-1 md:py-1.5 bg-linear-to-r from-orange-500 to-red-600 text-white rounded-full shadow-lg hover:scale-105 transition-transform cursor-pointer" title="Maintain your streak!" onClick={handleProfileClick}>
                             <Flame size={14} className="fill-white md:w-5 md:h-5" />
                             <span className="font-black text-sm md:text-lg leading-none">{streak}</span>
                         </div>
