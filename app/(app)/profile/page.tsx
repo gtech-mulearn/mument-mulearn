@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { getMyProfile } from "@/lib/profile"
 import { getUserStreak } from "@/lib/daily-updates"
 import StreakSociety from "./components/StreakSociety"
-import ProfileCard from "./components/ProfileCard.tsx"
+import ProfileCard from "./components/ProfileCard"
 
 export default async function ProfilePage() {
   const profile = await getMyProfile()
