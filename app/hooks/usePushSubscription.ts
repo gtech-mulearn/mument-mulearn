@@ -31,41 +31,61 @@ export function usePushSubscription() {
         }
     }
 
-    async function subscribeToPush() {
+    async function subscribeToPush(retries = 3): Promise<boolean> {
         if (!headerKey) {
             console.error("No VAPID public key found")
             return false
         }
 
-        try {
-            console.log("Requesting notification permission...")
-            const permission = await Notification.requestPermission()
-            if (permission !== 'granted') {
-                console.error("Permission not granted:", permission)
-                return false
-            }
-
-            console.log("Waiting for Service Worker...")
-            const registration = await navigator.serviceWorker.ready
-
-            console.log("Subscribing to PushManager...")
-            const sub = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(headerKey),
-            })
-
-            console.log("Subscription successful:", sub)
-            setSubscription(sub)
-
-            console.log("Saving to server...")
-            await saveSubscriptionAction(JSON.parse(JSON.stringify(sub)))
-            console.log("Saved to server.")
-
-            return true
-        } catch (error) {
-            console.error("Subscription failed:", error)
+        console.log("Requesting notification permission...")
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') {
+            console.error("Permission not granted:", permission)
             return false
         }
+
+        for (let i = 0; i < retries; i++) {
+            try {
+                console.log(`Attempt ${i + 1}/${retries}: Waiting for Service Worker...`)
+
+                // Race between SW ready and timeout
+                const registration = await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error("Service Worker timeout")), 5000)
+                    )
+                ]) as ServiceWorkerRegistration
+
+                console.log("Subscribing to PushManager...")
+                const sub = await Promise.race([
+                    registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(headerKey),
+                    }),
+                    new Promise<PushSubscription>((_, reject) =>
+                        setTimeout(() => reject(new Error("Subscription timeout")), 10000)
+                    )
+                ])
+
+                console.log("Subscription successful:", sub)
+                setSubscription(sub)
+
+                console.log("Saving to server...")
+                await saveSubscriptionAction(JSON.parse(JSON.stringify(sub)))
+                console.log("Saved to server.")
+
+                return true
+            } catch (error) {
+                console.warn(`Subscription attempt ${i + 1} failed:`, error)
+                if (i === retries - 1) {
+                    console.error("All subscription attempts failed.")
+                    return false
+                }
+                // Wait 1s before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000))
+            }
+        }
+        return false
     }
 
     function urlBase64ToUint8Array(base64String: string) {
