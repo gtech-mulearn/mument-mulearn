@@ -279,3 +279,38 @@ export async function toggleFeedbackReactionAction(targetId: string, targetType:
     revalidatePath("/feedback/inbox/[id]", 'page')
     revalidatePath("/feedback/my-feedback/[id]", 'page')
 }
+
+export async function getNotificationsAction() {
+    const supabase = await createClient()
+    const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+    return data || []
+}
+
+export async function markNotificationReadAction(id: string) {
+    const supabase = await createClient()
+    await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', id)
+
+    revalidatePath('/dashboard')
+}
+
+export async function markAllNotificationsReadAction() {
+    const supabase = await createClient()
+    const user = await getMyProfile()
+    if (!user) return
+
+    await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+
+    revalidatePath('/dashboard')
+}

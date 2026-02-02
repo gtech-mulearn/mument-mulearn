@@ -3,7 +3,7 @@
 import { Menu, LogOut, Flame } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ToastProvider"
-import PushNotificationManager from "../../(app)/components/PushNotificationManager"
+import NotificationCenter from "@/(app)/components/NotificationCenter"
 
 export default function DashboardHeader({
     onMenuClick,
@@ -61,7 +61,8 @@ export default function DashboardHeader({
                         </div>
                     )}
 
-                    <PushNotificationManager />
+                    <NotificationCenter />
+
 
                     <p className="text-sm text-slate-400 hidden sm:block">
                         {new Date().toLocaleDateString("en-US", {
