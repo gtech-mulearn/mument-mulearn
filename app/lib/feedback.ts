@@ -36,7 +36,7 @@ export async function submitFeedback(data: {
     if (error) throw error
 }
 
-export async function getFeedbackInbox() {
+export async function getFeedbackInbox(statusFilter?: string) {
     const supabase = await createClient()
     const user = await getMyProfile()
 
@@ -46,6 +46,10 @@ export async function getFeedbackInbox() {
 
     // 1. Fetch Feedback raw (No joins to avoid FK issues)
     let query = supabase.from("feedback").select("*").order("created_at", { ascending: false }).limit(50)
+
+    if (statusFilter && statusFilter !== 'all') {
+        query = query.eq("status", statusFilter)
+    }
 
     if (permissions.canViewAllFeedback(user.role)) {
         // No filter

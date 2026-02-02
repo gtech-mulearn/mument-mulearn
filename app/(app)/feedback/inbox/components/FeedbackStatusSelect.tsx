@@ -42,7 +42,6 @@ export default function FeedbackStatusSelect({ id, currentStatus }: { id: string
                     <option value="new">Submitted</option>
                     <option value="work_in_progress">In Progress</option>
                     <option value="completed">Completed</option>
-                    <option value="closed">Closed</option>
                 </select>
                 {isPending && (
                     <Loader2 size={12} className="absolute right-2 text-slate-400 animate-spin" />

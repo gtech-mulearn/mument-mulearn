@@ -66,7 +66,9 @@ export async function updateFeedbackStatusAction(id: string, status: string) {
     await updateFeedbackStatus(id, status)
     revalidatePath("/feedback/inbox")
     revalidatePath("/feedback/my-feedback")
-    revalidatePath("/feedback/my-feedback")
+    // Also revalidate the specific thread pages
+    revalidatePath(`/feedback/inbox/${id}`)
+    revalidatePath(`/feedback/my-feedback/${id}`)
 }
 
 export async function updateUserProfileAction(userId: string, data: { role: Role; district_id: string; campus_id: string; email: string }) {
@@ -241,4 +243,19 @@ export async function createUserAction(data: {
     if (profileError) throw new Error("Profile Error: " + profileError.message)
 
     revalidatePath("/admin")
+}
+
+import { postReply, toggleReaction } from "@/lib/feedback-thread"
+
+export async function postFeedbackReplyAction(feedbackId: string, message: string) {
+    if (!message.trim()) return
+    await postReply(feedbackId, message)
+    revalidatePath(`/feedback/inbox/${feedbackId}`)
+    revalidatePath(`/feedback/my-feedback/${feedbackId}`)
+}
+
+export async function toggleFeedbackReactionAction(targetId: string, targetType: 'feedback' | 'reply', emoji: string) {
+    await toggleReaction(targetId, targetType, emoji)
+    revalidatePath("/feedback/inbox/[id]", 'page')
+    revalidatePath("/feedback/my-feedback/[id]", 'page')
 }

@@ -1,15 +1,23 @@
 import { getFeedbackInbox } from "@/lib/feedback"
-import { Inbox, User, Tag, MapPin, Mail } from "lucide-react"
+import { Inbox, User, Tag, MapPin, Mail, MessageCircle } from "lucide-react"
+import Link from "next/link"
 import FeedbackStatusSelect from "./components/FeedbackStatusSelect"
+import FeedbackFilter from "./components/FeedbackFilter"
 
-export default async function FeedbackInboxPage() {
-    const feedback = await getFeedbackInbox()
+export const dynamic = "force-dynamic"
+
+export default async function FeedbackInboxPage(props: { searchParams: Promise<{ status?: string }> }) {
+    const searchParams = await props.searchParams;
+    const feedback = await getFeedbackInbox(searchParams.status)
 
     return (
         <div className="py-8 px-6 max-w-5xl mx-auto">
-            <header className="mb-6 border-b border-gray-100 pb-4">
-                <h1 className="text-2xl font-bold text-slate-800">Feedback Inbox</h1>
-                <p className="text-sm text-slate-500">Manage and review submitted feedback</p>
+            <header className="mb-6 border-b border-gray-100 pb-4 flex justify-between items-end">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800">Feedback Inbox</h1>
+                    <p className="text-sm text-slate-500">Manage and review submitted feedback</p>
+                </div>
+                <FeedbackFilter />
             </header>
 
             {feedback.length === 0 ? (
@@ -39,10 +47,10 @@ export default async function FeedbackInboxPage() {
                             </div>
 
                             {/* Content */}
-                            <div className="mb-4">
-                                <h3 className="font-semibold text-slate-900 text-lg mb-1">{f.subject}</h3>
+                            <Link href={`/feedback/inbox/${f.id}`} className="block mb-4 group">
+                                <h3 className="font-semibold text-slate-900 text-lg mb-1 group-hover:text-blue-600 transition-colors">{f.subject}</h3>
                                 <p className="text-sm text-slate-600 leading-relaxed">{f.description}</p>
-                            </div>
+                            </Link>
 
                             {/* Footer: User Details */}
                             <div className="pt-4 border-t border-gray-50 flex flex-wrap gap-4 text-xs text-slate-500">
@@ -66,6 +74,16 @@ export default async function FeedbackInboxPage() {
                                         <span>{f.profiles.email}</span>
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="mt-4 pt-3 flex justify-end border-t border-slate-50">
+                                <Link
+                                    href={`/feedback/inbox/${f.id}`}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
+                                >
+                                    <MessageCircle size={16} />
+                                    Reply to Thread
+                                </Link>
                             </div>
                         </article>
                     ))}

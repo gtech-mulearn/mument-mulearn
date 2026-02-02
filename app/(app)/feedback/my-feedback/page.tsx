@@ -1,5 +1,6 @@
 import { getMyFeedback } from "@/lib/feedback"
 import { Tag, Clock, CheckCircle2, AlertCircle, XCircle, Inbox } from "lucide-react"
+import Link from "next/link"
 
 export default async function MyFeedbackPage() {
     const feedback = await getMyFeedback()
@@ -33,28 +34,30 @@ export default async function MyFeedbackPage() {
             ) : (
                 <div className="space-y-4">
                     {feedback.map((f) => (
-                        <div key={f.id} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 className="font-semibold text-slate-800">{f.subject}</h3>
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <span className="text-xs text-slate-500 flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
-                                            <Tag size={10} /> {f.category}
-                                        </span>
-                                        <span className="text-slate-300 text-[10px]">•</span>
-                                        <span className="text-xs text-slate-400">
-                                            {new Date(f.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                        </span>
+                        <Link href={`/feedback/my-feedback/${f.id}`} key={f.id} className="block group">
+                            <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all group-hover:border-blue-200">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">{f.subject}</h3>
+                                        <div className="flex items-center gap-2 mt-1.5">
+                                            <span className="text-xs text-slate-500 flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                                <Tag size={10} /> {f.category}
+                                            </span>
+                                            <span className="text-slate-300 text-[10px]">•</span>
+                                            <span className="text-xs text-slate-400">
+                                                {new Date(f.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {getStatusBadge(f.status || 'new')}
                                     </div>
                                 </div>
-                                <div>
-                                    {getStatusBadge(f.status || 'new')}
-                                </div>
+                                <p className="text-sm text-slate-600 bg-slate-50/50 p-3 rounded-lg border border-slate-50/50 line-clamp-2">
+                                    {f.description}
+                                </p>
                             </div>
-                            <p className="text-sm text-slate-600 bg-slate-50/50 p-3 rounded-lg border border-slate-50/50">
-                                {f.description}
-                            </p>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             )}
