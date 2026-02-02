@@ -15,6 +15,14 @@ export interface DistrictStat {
     count: number
 }
 
+export interface PersonalStat {
+    totalUpdates: number
+    totalUpvotes: number
+    averageUpvotesPerUpdate: number
+    streakDays: number
+    hasUpdatedToday: boolean
+}
+
 export async function getDailyUpdateStats(): Promise<DailyUpdateStat[]> {
     const supabase = await createClient()
 
@@ -133,4 +141,69 @@ export async function getDistrictStats(): Promise<DistrictStat[]> {
     return Array.from(countMap.entries())
         .map(([districtId, count]) => ({ name: districtMap.get(districtId) || "Unknown", count }))
         .sort((a, b) => b.count - a.count)
+}
+
+export async function getPersonalStats(userId: string): Promise<PersonalStat> {
+    const supabase = await createClient()
+
+    // Fetch user's daily updates
+    const { data: updates, error: updatesError } = await supabase
+        .from("daily_updates")
+        .select("id, created_at, upvote_count")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+
+    if (updatesError) {
+        console.error("Error fetching personal updates:", updatesError)
+        return {
+            totalUpdates: 0,
+            totalUpvotes: 0,
+            averageUpvotesPerUpdate: 0,
+            streakDays: 0,
+            hasUpdatedToday: false
+        }
+    }
+
+    const totalUpdates = updates?.length || 0
+    const totalUpvotes = updates?.reduce((sum, u) => sum + (u.upvote_count || 0), 0) || 0
+    const averageUpvotesPerUpdate = totalUpdates > 0 ? totalUpvotes / totalUpdates : 0
+
+    // Check if user has updated today
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const hasUpdatedToday = updates?.some(u => {
+        const updateDate = new Date(u.created_at)
+        updateDate.setHours(0, 0, 0, 0)
+        return updateDate.getTime() === today.getTime()
+    }) || false
+
+    // Calculate streak (consecutive days with updates)
+    let streakDays = 0
+    if (updates && updates.length > 0) {
+        const sortedDates = updates
+            .map(u => new Date(u.created_at).toDateString())
+            .filter((date, index, arr) => arr.indexOf(date) === index)
+            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+
+        const todayStr = new Date().toDateString()
+        if (sortedDates[0] === todayStr || new Date(sortedDates[0]).getTime() === new Date(todayStr).getTime() - 86400000) {
+            for (let i = 0; i < sortedDates.length; i++) {
+                const expectedDate = new Date()
+                expectedDate.setDate(expectedDate.getDate() - i)
+                if (expectedDate.toDateString() === sortedDates[i]) {
+                    streakDays++
+                } else {
+                    break
+                }
+            }
+        }
+    }
+
+    return {
+        totalUpdates,
+        totalUpvotes,
+        averageUpvotesPerUpdate,
+        streakDays,
+        hasUpdatedToday
+    }
 }

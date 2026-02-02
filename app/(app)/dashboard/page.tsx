@@ -5,10 +5,11 @@ import StatsCards from "./components/StatsCards"
 import { getMyProfile } from "@/lib/profile"
 import DashboardWelcome from "@/components/DashboardWelcome"
 import { getUserPoints } from "@/lib/points"
-import { getDailyUpdateStats, getCampusStats, getDistrictStats } from "@/lib/stats"
+import { getDailyUpdateStats, getCampusStats, getDistrictStats, getPersonalStats } from "@/lib/stats"
 import { getDailyUpdateStats as getCampusDailyStats, getTopContributors, getCampusAnalytics } from "@/lib/campus-stats"
 import AdminStats from "./components/AdminStats"
 import CampusStats from "./components/CampusStats"
+import PersonalStats from "./components/PersonalStats"
 
 
 export default async function DashboardPage() {
@@ -18,6 +19,9 @@ export default async function DashboardPage() {
   const typedProfile = profile as UserProfile
   const role = typedProfile.role
   const points = await getUserPoints(typedProfile.id)
+
+  // Fetch personal statistics
+  const personalStats = await getPersonalStats(typedProfile.id)
 
   // Fetch stats only if admin
   let statsProps = null
@@ -51,7 +55,8 @@ export default async function DashboardPage() {
 
         <StatsCards points={points} />
 
-
+        {/* Personal Statistics Section (Visible to all users) */}
+        {personalStats && <PersonalStats stats={personalStats} />}
 
         {/* Admin Analytics Section */}
         <RoleGate role={role} allow={['admin']}>
@@ -74,8 +79,7 @@ export default async function DashboardPage() {
         {/* Standard User Team Details (Visible to non-admins) */}
         {role !== 'admin' && (
           <div>
-            <h1 className="text-2xl font-bold text-black">Team details</h1>
-            {/* Team details content would go here */}
+            {/* Team Details */}
           </div>
         )}
 
