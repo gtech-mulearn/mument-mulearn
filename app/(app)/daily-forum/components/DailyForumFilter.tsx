@@ -97,6 +97,17 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
         setIsLoading(false);
     }, [urlPage, sort, college, date, keyword, filteredUpdates.length]);
 
+    //Handle loading state force for timeout
+    useEffect(() => {
+        if (isLoading) {
+            const timer = setTimeout(() => {
+                setIsLoading(false);
+            }, 3000); // Minimum loading time of 3 seconds
+
+            return () => clearTimeout(timer);
+        }
+    }, [isLoading]);
+
     // Paginate filtered results
     const itemsPerPage = limit;
     const totalPages = Math.ceil(filteredUpdates.length / itemsPerPage);
