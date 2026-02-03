@@ -31,19 +31,37 @@ export async function getDailyUpdateStats(): Promise<DailyUpdateStat[]> {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6) // Include today
     sevenDaysAgo.setHours(0, 0, 0, 0)
 
-    // Fetch raw counts grouping by date is hard in Supabase JS without RPC
-    // So we fetch all updates from last 7 days and aggregate in JS (assuming scale allows)
-    // For high scale, use RPC or Materialized View
-    const { data, error } = await supabase
-        .from("daily_updates")
-        .select("created_at")
-        .gte("created_at", sevenDaysAgo.toISOString())
-        .order("created_at", { ascending: true })
+    // Fetch all updates from last 7 days using pagination (Supabase has 1000 row limit)
+    let allData: Array<{ created_at: string }> = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
 
-    if (error) {
-        console.error("Error fetching daily stats:", error)
-        return []
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from("daily_updates")
+            .select("created_at")
+            .gte("created_at", sevenDaysAgo.toISOString())
+            .order("created_at", { ascending: true })
+            .range(page * pageSize, (page + 1) * pageSize - 1)
+
+        if (error) {
+            console.error("Error fetching daily stats:", error)
+            break
+        }
+
+        if (!data || data.length === 0) {
+            hasMore = false
+        } else {
+            allData = allData.concat(data)
+            if (data.length < pageSize) {
+                hasMore = false
+            }
+            page++
+        }
     }
+
+    console.log(`Fetched ${allData.length} total updates across ${page} page(s)`)
 
     // Initialize map with last 7 days
     const statsMap = new Map<string, number>()
@@ -56,7 +74,7 @@ export async function getDailyUpdateStats(): Promise<DailyUpdateStat[]> {
     }
 
     // Aggregate
-    data.forEach((update) => {
+    allData.forEach((update) => {
         if (update.created_at) {
             const dateKey = new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             if (statsMap.has(dateKey)) {
@@ -173,23 +191,37 @@ export async function getPersonalStats(userId: string): Promise<PersonalStat> {
         return updateDate.getTime() === today.getTime()
     }) || false
 
-    // Calculate streak (consecutive days with updates)
+    // Calculate streak (consecutive days with updates, starting from today or yesterday)
     let streakDays = 0
     if (updates && updates.length > 0) {
-        const sortedDates = updates
-            .map(u => new Date(u.created_at).toDateString())
-            .filter((date, index, arr) => arr.indexOf(date) === index)
-            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+        // Get unique dates from updates, sorted newest first
+        const uniqueDates = Array.from(
+            new Set(updates.map(u => new Date(u.created_at).toDateString()))
+        ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
 
-        const todayStr = new Date().toDateString()
-        if (sortedDates[0] === todayStr || new Date(sortedDates[0]).getTime() === new Date(todayStr).getTime() - 86400000) {
-            for (let i = 0; i < sortedDates.length; i++) {
-                const expectedDate = new Date()
-                expectedDate.setDate(expectedDate.getDate() - i)
-                if (expectedDate.toDateString() === sortedDates[i]) {
-                    streakDays++
-                } else {
-                    break
+        if (uniqueDates.length > 0) {
+            // Determine starting date: today or yesterday
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const yesterday = new Date(today)
+            yesterday.setDate(yesterday.getDate() - 1)
+
+            const latestUpdateDate = new Date(uniqueDates[0])
+            latestUpdateDate.setHours(0, 0, 0, 0)
+
+            // Only count streak if latest update is today or yesterday
+            if (latestUpdateDate.getTime() === today.getTime() || latestUpdateDate.getTime() === yesterday.getTime()) {
+                // Start counting from the latest update
+                let currentCheckDate = new Date(latestUpdateDate)
+                for (let i = 0; i < uniqueDates.length; i++) {
+                    const checkDate = new Date(uniqueDates[i])
+                    checkDate.setHours(0, 0, 0, 0)
+                    if (checkDate.getTime() === currentCheckDate.getTime()) {
+                        streakDays++
+                        currentCheckDate.setDate(currentCheckDate.getDate() - 1)
+                    } else {
+                        break
+                    }
                 }
             }
         }

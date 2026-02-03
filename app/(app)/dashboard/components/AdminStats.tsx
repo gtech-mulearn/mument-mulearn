@@ -50,6 +50,11 @@ export default function AdminStats({ dailyStats, campusStats, districtStats }: P
             setCampusDailyStats([])
         }
     }
+
+    // Handle daily updates of all colleges when no campus is selected
+    const displayedDailyStats = selectedCampus ? campusDailyStats : dailyStats
+    console.log("Displayed Daily Stats:", displayedDailyStats)
+    
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
