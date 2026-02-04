@@ -1,9 +1,35 @@
 'use client';
 
+import { useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import Silk from '@/components/Silk';
 import Image from 'next/image';
 
 export default function LandingPage() {
+  const router = useRouter()
+  // const [error, setError] = useState<string | null>(null)
+
+  const supabase = useMemo(() => createClient(), [])
+
+
+  const redirectToDashboard = useCallback(() => router.replace("/dashboard"), [router])
+
+  // If already logged in, skip login page
+
+  const handleGetStarted = () => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        redirectToDashboard()
+      } else {
+        router.push("/login")
+      }
+    }
+    checkSession()
+  }
+
+
   return (
     <div className="relative w-full h-full bg-black overflow-hidden">
       <div className="absolute inset-0">
@@ -32,7 +58,7 @@ export default function LandingPage() {
         <button
           className="px-6 py-3 bg-white text-black font-semibold rounded-full shadow-lg hover:bg-gray-200 transition"
           onClick={() => {
-            window.location.href = '/login';
+            handleGetStarted();
           }}
         >
           Get Started

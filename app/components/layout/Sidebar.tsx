@@ -90,15 +90,15 @@ export default function Sidebar({ role, open, onClose }: Props) {
         <ul className="flex flex-col gap-2">
           <NavItem href="/dashboard" label="Dashboard" icon={LayoutDashboard} isActive={pathname === '/dashboard'} onClose={onClose} />
           <NavItem href="/profile" label="Profile" icon={User} isActive={pathname === '/profile'} onClose={onClose} />
-          <NavItem href="/feedback/submit" label="Submit Feedback" icon={MessageSquareText} isActive={pathname === '/feedback/submit'} onClose={onClose} />
+          
 
           {!permissions.canManageCheckpoints(role) && (
             <NavItem href="/checkpoints" label="Checkpoints" icon={MapPin} isActive={pathname === '/checkpoints'} onClose={onClose} />
           )}
 
+          <NavItem href="/daily-update" label="Daily Update" icon={CalendarCheck} isActive={pathname === '/daily-update'} onClose={onClose} />
           <NavItem href="/daily-forum" label="Forum" icon={Send} isActive={pathname === '/daily-forum'} onClose={onClose} />
 
-          <NavItem href="/daily-update" label="Daily Update" icon={CalendarCheck} isActive={pathname === '/daily-update'} onClose={onClose} />
 
           {permissions.canViewFeedbackInbox(role) && (
             <NavItem href="/feedback/inbox" label="Feedback Inbox" icon={Inbox} isActive={pathname === '/feedback/inbox'} onClose={onClose} />
@@ -109,6 +109,9 @@ export default function Sidebar({ role, open, onClose }: Props) {
           )}
 
           <NavItem href="/announcements" label="Announcements" icon={Megaphone} isActive={pathname === '/announcements'} onClose={onClose} />
+
+
+          <NavItem href="/feedback/submit" label="Submit Feedback" icon={MessageSquareText} isActive={pathname === '/feedback/submit'} onClose={onClose} />
 
           {["admin", "campus_coordinator"].includes(role) && (
             <NavItem href="/admin" label="Admin" icon={ShieldCheck} isActive={pathname === '/admin'} onClose={onClose} />

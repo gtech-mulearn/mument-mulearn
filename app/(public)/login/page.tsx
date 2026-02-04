@@ -51,8 +51,8 @@ export default function LoginPage() {
 
     return (
     <>
-    <div className="h-screen flex items-center justify-center p-6">
-      <div className="absolute inset-0">
+    <div className="h-screen flex items-center justify-center p-6 relative">
+      <div className="fixed inset-0 -z-10">
         <Silk
           speed={5}
           scale={1}
@@ -88,9 +88,16 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <div className="order-2 flex items-center">
+        <div className="order-2 flex flex-col items-center gap-6">
           <LoginForm onSignedIn={handleSignedIn} />
+          <button 
+            className="px-6 py-3 bg-white text-black font-semibold rounded-full shadow-lg hover:bg-gray-200 transition" 
+            onClick={() => router.push("/")}
+          >
+            Go back to Home
+          </button>
         </div>
+        
       </div>
         <ConditionsModal open={showConditions} onClose={handleCloseConditions} />
       </div>
