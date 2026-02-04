@@ -21,7 +21,9 @@ function LoadingSkeleton() {
 
 async function DailyForumContent({ page = 1, sort = 'recent' }: { page?: number; sort?: string }) {
     // Fetch all data for client-side filtering
-    const dailyUpdates = await getDailyUpdates(10000, 0, sort as 'recent' | 'oldest' | 'upvotes');
+    const result = await getDailyUpdates(10000, 0, sort as 'recent' | 'oldest' | 'upvotes');
+    const dailyUpdates = result.updates;
+    const totalCount = result.totalCount;
     const userProfile = await getMyProfile();
     const limit = 50; // Items per page
 
@@ -40,7 +42,7 @@ async function DailyForumContent({ page = 1, sort = 'recent' }: { page?: number;
         .sort();
 
     return (
-        <DailyForumFilter dailyUpdates={dailyUpdates} colleges={colleges} role={userProfile?.role} page={page} limit={limit} />
+        <DailyForumFilter dailyUpdates={dailyUpdates} colleges={colleges} role={userProfile?.role} page={page} limit={limit} totalRows={totalCount} />
     );
 }
 

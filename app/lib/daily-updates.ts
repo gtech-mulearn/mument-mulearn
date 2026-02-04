@@ -8,8 +8,7 @@ export async function getDailyUpdates(limit: number = 10, offset: number = 0, so
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Fetch ALL daily updates with joined profile and college data for client-side filtering
-  // Pagination happens on client-side after filtering
+  // Fetch daily updates with joined profile and college data
   let query = supabase
     .from("daily_updates")
     .select(`
@@ -25,16 +24,19 @@ export async function getDailyUpdates(limit: number = 10, offset: number = 0, so
     query = query.order("created_at", { ascending: true })
   }
 
-  // Fetch all data without range limit for client-side filtering
-  const { data: daily_updates, error } = await query
+  // Apply limit and offset for pagination
+  query = query.range(offset, offset + limit - 1)
+
+  // Fetch data with specified limit and get the total count
+  const { data: daily_updates, error, count: totalCount } = await query
 
   if (error) {
     console.error("Error fetching daily updates:", error)
-    return []
+    return { updates: [], totalCount: 0 }
   }
 
   if (!daily_updates || daily_updates.length === 0) {
-    return []
+    return { updates: [], totalCount: totalCount ?? 0 }
   }
 
   // Get update IDs for upvote check
@@ -55,7 +57,7 @@ export async function getDailyUpdates(limit: number = 10, offset: number = 0, so
   }
 
   // Map joined data
-  return daily_updates.map(update => {
+  const updates = daily_updates.map(update => {
     // Handle joined profile data (may be null or array depending on Supabase response)
     const profileData = Array.isArray(update.profiles) ? update.profiles[0] : update.profiles
     const collegeData = Array.isArray(update.colleges) ? update.colleges[0] : update.colleges
@@ -68,6 +70,8 @@ export async function getDailyUpdates(limit: number = 10, offset: number = 0, so
       upvote_count: update.upvote_count ?? 0
     }
   })
+
+  return { updates, totalCount: totalCount ?? updates.length }
 }
 
 export async function getUserStreak(userId: string) {

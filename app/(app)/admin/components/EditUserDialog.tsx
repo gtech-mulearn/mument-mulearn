@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { updateUserProfileAction } from "@/actions"
 import { Role } from "@/types/user"
 import { Loader2, X, Save } from "lucide-react"
+import { useToast } from "@/components/ToastProvider"
 
 interface Props {
     user: {
@@ -30,6 +31,7 @@ export default function EditUserDialog({
     currentUserRole, currentUserCampusId, currentUserDistrictId
 }: Props) {
     const [isPending, startTransition] = useTransition()
+    const { show: showToast } = useToast()
     const [formData, setFormData] = useState({
         role: user.role,
         district_id: user.district_id,
@@ -47,14 +49,17 @@ export default function EditUserDialog({
                 onClose()
             } catch (error) {
                 console.error(error)
-                alert("Failed to update user")
+                showToast({
+                    title: "Update Failed",
+                    description: error instanceof Error ? error.message : "Failed to update user"
+                })
             }
         })
     }
 
     const isCoordinator = currentUserRole === "campus_coordinator"
     const allowedRoles = isCoordinator ? ["participant", "buddy"] : ROLES
-
+    
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">

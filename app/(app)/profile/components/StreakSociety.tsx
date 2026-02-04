@@ -13,7 +13,8 @@ interface Badge {
   id: string;
   name: string;
   description: string;
-  icon: React.ReactNode;
+  inactive: React.ReactNode;
+  active: React.ReactNode;
   milestone: number;
   color: string;
   unlocked: boolean;
@@ -28,7 +29,8 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
       id: 'spark',
       name: 'Spark',
       description: 'Start your journey',
-      icon: <Zap size={24} className='fill-white' />,
+      inactive: <Zap size={24} className='fill-white' />,
+      active: <Image src='/thunder.gif' alt="Spark" width={24} height={24} className=''/>,
       milestone: 1,
       color: 'bg-yellow-500',
       unlocked: streak >= 1,
@@ -37,7 +39,8 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
       id: 'rising-star',
       name: 'Rising Star',
       description: 'Build momentum',
-      icon: <Star size={24} className='fill-white' />,
+      inactive: <Star size={24} className='fill-white' />,
+      active: <Image src='/star.gif' alt="Rising Star" width={24} height={24} className=''/>,
       milestone: 3,
       color: 'bg-blue-500',
       unlocked: streak >= 3,
@@ -46,7 +49,8 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
       id: 'flame',
       name: 'On Fire',
       description: 'Keep the heat on',
-      icon: <Flame size={24} className='fill-white' />,
+      inactive: <Flame size={24} className='fill-white' />,
+      active: <Image src='/fire.gif' alt="On Fire" width={24} height={24} className=''/>,
       milestone: 7,
       color: 'bg-orange-500',
       unlocked: streak >= 7,
@@ -55,7 +59,8 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
       id: 'champion',
       name: 'Champion',
       description: 'Legendary streak',
-      icon: <Trophy size={24} className='fill-white' />,
+      inactive: <Trophy size={24} className='fill-white' />,
+      active: <Image src='/trophy.gif' alt="Champion" width={24} height={24} className=''/>,
       milestone: 14,
       color: 'bg-purple-500',
       unlocked: streak >= 14,
@@ -64,9 +69,10 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
       id: 'crown',
       name: 'Crown Holder',
       description: 'Mument Legend',
-      icon: <Crown size={24} className='fill-white' />,
+      inactive: <Crown size={24} className='fill-white' />,
+      active: <Image src='/crown.gif' alt="Crown Holder" width={24} height={24} className=''/>,
       milestone: 30,
-      color: 'bg-yellow-500',
+      color: 'bg-red-500',
       unlocked: streak >= 30,
     },
   ];
@@ -129,12 +135,12 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
           { id: 'checkpoints', label: 'Checkpoints', icon: Crown } // Using Crown temporarily or MapPin if imported
         ] as const).map(tab => {
           const isActive = activeTab === tab.id
-          const Icon = tab.id === 'checkpoints' ? Zap : tab.icon // Overriding for variety, or reuse imports
+          // const Icon = tab.id === 'checkpoints' ? Zap : tab.icon // Overriding for variety, or reuse imports
 
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`
                   relative flex items-center gap-2 px-6 py-3 rounded-t-xl border-t border-x transition-all duration-300 ease-in-out
                   ${isActive
@@ -166,16 +172,18 @@ export default function StreakSociety({ streak }: StreakSocietyProps) {
                     : 'bg-slate-100 text-slate-600 grayscale'
                   }`}
               >
-                <div className={`${badge.unlocked ? 'opacity-100' : 'opacity-40'} transition-opacity`}>
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="text-4xl">{badge.icon}</div>
+                <div className="transition-opacity">
+                  <div className='flex flex-row justify-between'>
+                  {badge.unlocked ? badge.active : badge.inactive}
+                  <div className="flex items-start justify-between mb-2">
                     {badge.unlocked && (
                       <div className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold">
                         Day {badge.milestone}+
                       </div>
                     )}
                   </div>
-                  <h3 className="font-bold text-lg">{badge.name}</h3>
+                  </div>
+                  <h3 className="font-bold text-lg mt-2">{badge.name}</h3>
                   <p className={`text-sm mt-2 ${badge.unlocked ? 'opacity-90' : 'opacity-60'}`}>
                     {badge.description}
                   </p>

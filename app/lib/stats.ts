@@ -23,6 +23,10 @@ export interface PersonalStat {
     hasUpdatedToday: boolean
 }
 
+export interface OnlineUserStat {
+    onlineCount: number
+}
+
 export async function getDailyUpdateStats(): Promise<DailyUpdateStat[]> {
     const supabase = await createClient()
 
@@ -218,6 +222,7 @@ export async function getPersonalStats(userId: string): Promise<PersonalStat> {
                     checkDate.setHours(0, 0, 0, 0)
                     if (checkDate.getTime() === currentCheckDate.getTime()) {
                         streakDays++
+                        currentCheckDate = new Date(currentCheckDate)
                         currentCheckDate.setDate(currentCheckDate.getDate() - 1)
                     } else {
                         break
@@ -233,5 +238,29 @@ export async function getPersonalStats(userId: string): Promise<PersonalStat> {
         averageUpvotesPerUpdate,
         streakDays,
         hasUpdatedToday
+    }
+}
+
+export async function getOnlineUserCount(): Promise<OnlineUserStat> {
+    try {
+        const supabase = await createClient()
+
+        // Query users who have been seen in the last 2 minutes
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+
+        const { count, error } = await supabase
+            .from("user_presence")
+            .select("*", { count: "exact", head: true })
+            .gte("last_seen", twoMinutesAgo)
+
+        if (error) {
+            console.error("Error fetching online user count:", error)
+            return { onlineCount: 0 }
+        }
+
+        return { onlineCount: count || 0 }
+    } catch (err) {
+        console.error("Exception in getOnlineUserCount:", err)
+        return { onlineCount: 0 }
     }
 }

@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition } from "react"
 import { Loader2, UserPlus, X } from "lucide-react"
 import { Role } from "@/types/user"
 import { createUserAction } from "@/actions"
+import {useToast} from "@/components/ToastProvider"
 
 interface Props {
     isOpen: boolean
@@ -22,68 +23,65 @@ export default function CreateUserDialog({
     currentUserRole, currentUserCampusId, currentUserDistrictId
 }: Props) {
     const [isPending, startTransition] = useTransition()
-    const [formData, setFormData] = useState({
-        full_name: "",
-        email: "",
-        password: "",
-        role: "participant" as Role,
-        district_id: "",
-        campus_id: ""
-    })
+    const { show: showToast } = useToast()
 
     const isCoordinator = currentUserRole === "campus_coordinator"
 
     // Filter Roles for Coordinator
     const allowedRoles = isCoordinator ? ["buddy"] : ROLES
 
-    // Effect to auto-fill for restricted users
-    useEffect(() => {
-        if (isOpen) {
-            if (isCoordinator) {
-                setFormData(prev => ({
-                    ...prev,
-                    campus_id: currentUserCampusId || "",
-                    district_id: currentUserDistrictId || "",
-                    role: "buddy"
-                }))
-            } else {
-                setFormData(prev => ({
-                    ...prev,
-                    role: "participant",
-                    campus_id: "",
-                    district_id: ""
-                }))
-            }
-        }
-    }, [isOpen, isCoordinator, currentUserCampusId, currentUserDistrictId])
+    // Initialize form data based on props
+    const [formData, setFormData] = useState({
+        full_name: "",
+        email: "",
+        password: "",
+        role: (isCoordinator ? "buddy" : "participant") as Role,
+        district_id: isCoordinator ? (currentUserDistrictId || "") : "",
+        campus_id: isCoordinator ? (currentUserCampusId || "") : ""
+    })
 
     if (!isOpen) return null
 
+    const resetForm = () => {
+        setFormData({
+            full_name: "",
+            email: "",
+            password: "",
+            role: isCoordinator ? "buddy" : "participant",
+            district_id: isCoordinator ? (currentUserDistrictId || "") : "",
+            campus_id: isCoordinator ? (currentUserCampusId || "") : ""
+        })
+    }
+
+    const handleClose = () => {
+        resetForm()
+        onClose()
+    }
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        if (!formData.district_id) return alert("Please select a district")
+        if (!formData.district_id) return showToast({
+            title: "Missing District",
+            description: "Please select a district for the user."
+        })
 
         startTransition(async () => {
             try {
                 await createUserAction(formData)
+                resetForm()
                 onClose()
-                // Reset form
-                setFormData({
-                    full_name: "",
-                    email: "",
-                    password: "",
-                    role: "participant",
-                    district_id: "",
-                    campus_id: ""
-                })
-            } catch (error: any) {
+            } catch (error) {
+                const message = error instanceof Error ? error.message : "Failed to create user"
                 console.error(error)
-                alert(error.message || "Failed to create user")
+                showToast({
+                    title: "Creation Failed",
+                    description: message
+                })
             }
         })
     }
 
-
+    
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -98,7 +96,7 @@ export default function CreateUserDialog({
                             <p className="text-xs text-slate-500">Create a new user with credentials.</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors text-slate-400 hover:text-slate-600">
+                    <button onClick={handleClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors text-slate-400 hover:text-slate-600">
                         <X size={20} />
                     </button>
                 </div>
@@ -189,7 +187,7 @@ export default function CreateUserDialog({
                     <div className="pt-2 flex justify-end gap-2">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium"
                         >
                             Cancel

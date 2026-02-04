@@ -4,10 +4,12 @@ import { useState, useTransition, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AdminUserView } from "@/lib/admin"
 import { Role } from "@/types/user"
-import { Search, Loader2, X, Filter, Edit2, UserPlus } from "lucide-react"
+import { Search, Loader2, X, Filter, Edit2, UserPlus, Upload } from "lucide-react"
 import SearchableSelect from "./SearchableSelect"
 import EditUserDialog from "./EditUserDialog"
 import CreateUserDialog from "./CreateUserDialog"
+import BulkImportDialog from "./BulkImportDialog"
+import BulkActionsToolbar from "./BulkActionsToolbar"
 
 interface Props {
     users: AdminUserView[]
@@ -31,6 +33,8 @@ export default function UserManagementTable({
     const [isPending, startTransition] = useTransition()
     const [editingUser, setEditingUser] = useState<AdminUserView | null>(null)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
+    const [isBulkImportOpen, setIsBulkImportOpen] = useState(false)
+    const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
 
     // Local state for debounced search
     const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
@@ -66,6 +70,24 @@ export default function UserManagementTable({
         })
     }
 
+    const handleSelectUser = (userId: string) => {
+        const newSelected = new Set(selectedUserIds)
+        if (newSelected.has(userId)) {
+            newSelected.delete(userId)
+        } else {
+            newSelected.add(userId)
+        }
+        setSelectedUserIds(newSelected)
+    }
+
+    const handleSelectAll = () => {
+        if (selectedUserIds.size === users.length) {
+            setSelectedUserIds(new Set())
+        } else {
+            setSelectedUserIds(new Set(users.map(u => u.id)))
+        }
+    }
+
     const handlePageChange = (newPage: number) => {
         const params = new URLSearchParams(searchParams)
         params.set("page", newPage.toString())
@@ -83,7 +105,7 @@ export default function UserManagementTable({
 
                 <div className="space-y-4 md:space-y-0 md:flex md:items-center md:gap-4 flex-1">
                     {/* Search Input */}
-                    <div className="relative flex-1 min-w-[200px]">
+                    <div className="relative flex-1 min-w-50">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input
                             type="text"
@@ -147,6 +169,14 @@ export default function UserManagementTable({
                     <UserPlus size={18} />
                     Add User
                 </button>
+
+                <button
+                    onClick={() => setIsBulkImportOpen(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 active:scale-[0.95] transition-all whitespace-nowrap"
+                >
+                    <Upload size={18} />
+                    Bulk Import
+                </button>
             </div>
 
             {/* Table */}
@@ -155,6 +185,14 @@ export default function UserManagementTable({
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
                             <tr>
+                                <th className="px-4 py-4 w-12">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedUserIds.size === users.length && users.length > 0}
+                                        onChange={handleSelectAll}
+                                        className="rounded border-gray-300 cursor-pointer"
+                                    />
+                                </th>
                                 <th className="px-6 py-4">User</th>
                                 <th className="px-6 py-4">Role</th>
                                 <th className="px-6 py-4">Campus / District</th>
@@ -164,7 +202,7 @@ export default function UserManagementTable({
                         <tbody className="divide-y divide-gray-50">
                             {users.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-400 flex flex-col items-center justify-center gap-2">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400 flex flex-col items-center justify-center gap-2">
                                         <Filter size={32} className="opacity-20" />
                                         <p>No users found matching these filters.</p>
                                         <button onClick={clearFilters} className="text-brand-blue hover:underline text-xs">Clear all filters</button>
@@ -173,6 +211,14 @@ export default function UserManagementTable({
                             ) : (
                                 users.map(user => (
                                     <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
+                                        <td className="px-4 py-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedUserIds.has(user.id)}
+                                                onChange={() => handleSelectUser(user.id)}
+                                                className="rounded border-gray-300 cursor-pointer"
+                                            />
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="font-semibold text-slate-800">{user.full_name}</div>
                                             {user.email && <div className="text-xs text-slate-500 mb-0.5">{user.email}</div>}
@@ -267,6 +313,29 @@ export default function UserManagementTable({
                 currentUserCampusId={currentUserCampusId}
                 currentUserDistrictId={currentUserDistrictId}
             />
+
+            {/* Bulk Import Dialog */}
+            <BulkImportDialog
+                isOpen={isBulkImportOpen}
+                onClose={() => setIsBulkImportOpen(false)}
+                districts={districts}
+                campuses={campuses}
+                currentUserRole={currentUserRole}
+                currentUserCampusId={currentUserCampusId}
+                currentUserDistrictId={currentUserDistrictId}
+            />
+
+            {/* Bulk Actions Toolbar */}
+            {selectedUserIds.size > 0 && (
+                <BulkActionsToolbar
+                    selectedUserIds={Array.from(selectedUserIds)}
+                    onClose={() => setSelectedUserIds(new Set())}
+                    districts={districts}
+                    campuses={campuses}
+                    currentUserRole={currentUserRole}
+                    currentUserCampusId={currentUserCampusId}
+                />
+            )}
         </div>
     )
 }

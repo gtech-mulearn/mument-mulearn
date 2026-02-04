@@ -1,7 +1,7 @@
 import RoleGate from "@/components/layout/RoleGate"
 import { UserProfile } from "@/types/user"
 import ProfileCard from "./components/ProfileCard"
-import StatsCards from "./components/StatsCards"
+// import StatsCards from "./components/StatsCards"
 import { getMyProfile } from "@/lib/profile"
 import DashboardWelcome from "@/components/DashboardWelcome"
 import { getUserPoints } from "@/lib/points"
@@ -53,7 +53,8 @@ export default async function DashboardPage() {
 
         <ProfileCard profile={typedProfile} />
 
-        <StatsCards points={points} />
+        {/* Currently disabled: will re-enable soon. */}
+        {/* <StatsCards points={points} /> */}
 
         {/* Personal Statistics Section (Visible to all users) */}
         {personalStats && <PersonalStats stats={personalStats} />}

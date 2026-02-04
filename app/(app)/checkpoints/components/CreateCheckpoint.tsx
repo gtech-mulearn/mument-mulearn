@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Plus, X } from "lucide-react"
 import { createCheckpointAction } from "@/actions"
+import { useToast } from "@/components/ToastProvider"
 
 interface CreateCheckpointProps {
     availableTeams?: { id: string, team_name: string }[]
@@ -11,13 +12,17 @@ interface CreateCheckpointProps {
 export default function CreateCheckpoint({ availableTeams = [] }: CreateCheckpointProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const { show: showToast } = useToast()
 
     async function onSubmit(formData: FormData) {
         setLoading(true)
         await createCheckpointAction(formData)
         setLoading(false)
         setIsOpen(false)
-        alert("Checkpoint created successfully")
+        showToast({
+            title: "Checkpoint Created",
+            description: "The new checkpoint has been successfully created."
+        })
     }
 
     if (!isOpen) {

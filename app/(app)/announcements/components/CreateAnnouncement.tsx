@@ -3,10 +3,12 @@
 import { useState } from "react"
 import { Plus, X } from "lucide-react"
 import { createAnnouncementAction } from "@/actions"
+import { useToast } from "@/components/ToastProvider"
 
 export default function CreateAnnouncement() {
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const { show: showToast } = useToast()
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -17,7 +19,10 @@ export default function CreateAnnouncement() {
 
         setLoading(false)
         setIsOpen(false)
-        alert("Announcement Posted")
+        showToast({
+            title: "Announcement Posted",
+            description: "Your announcement has been successfully posted."
+        })
     }
 
     if (!isOpen) {

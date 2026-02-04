@@ -74,7 +74,7 @@ export async function updateUserRoleAction(userId: string, newRole: Role) {
     const supabase = await createClient()
     const currentUser = await getMyProfile()
 
-    if (currentUser?.role !== "admin") {
+    if (currentUser?.role !== "admin","campus_coordinator") {
         throw new Error("Unauthorized")
     }
 
@@ -406,4 +406,174 @@ export async function triggerDailyNudgeAction() {
     }))
 
     return { success: true, count: inactiveSubs.length }
+}
+export async function bulkImportUsersAction(users: Array<{
+    email: string;
+    full_name: string;
+    password: string;
+    role: Role;
+    district_id: string;
+    campus_id: string
+}>) {
+    const currentUser = await getMyProfile()
+
+    //unly admins can bulk import users. we can add campus_coordinators later if needed
+
+    if (!currentUser || !["admin"].includes(currentUser.role)) {
+        throw new Error("Unauthorized")
+    }
+
+    const supabaseAdmin = createAdminClient()
+    const results = {
+        success: 0,
+        failed: 0,
+        errors: [] as Array<{ email: string; error: string }>
+    }
+
+    for (const userData of users) {
+        try {
+            const data = { ...userData }
+
+            // Role-specific constraints for Campus Coordinators
+            if (currentUser.role === "campus_coordinator") {
+                if (!currentUser.campus_id) throw new Error("Account not linked to a campus")
+                data.campus_id = currentUser.campus_id
+                data.district_id = currentUser.district_id
+                if (data.role !== "buddy") {
+                    throw new Error("Campus Coordinators can only add Buddies")
+                }
+            }
+
+            let userId: string | null = null
+
+            // Create or get auth user
+            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                email: data.email,
+                password: data.password,
+                email_confirm: true,
+                user_metadata: {
+                    full_name: data.full_name
+                }
+            })
+
+            if (authError) {
+                if (authError.message.includes("already been registered")) {
+                    const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+                    if (listError || !usersData) {
+                        throw new Error("User exists but failed to retrieve details")
+                    }
+                    const existingUser = usersData.users.find(u => u.email === data.email)
+                    if (existingUser) {
+                        userId = existingUser.id
+                        await supabaseAdmin.auth.admin.updateUserById(userId, {
+                            password: data.password,
+                            user_metadata: { full_name: data.full_name }
+                        })
+                    } else {
+                        throw new Error("User email is registered but could not be found")
+                    }
+                } else {
+                    throw new Error(authError.message)
+                }
+            } else {
+                userId = authUser.user?.id || null
+            }
+
+            if (!userId) throw new Error("Failed to resolve user ID")
+
+            // Create or update profile
+            const { error: profileError } = await supabaseAdmin
+                .from("profiles")
+                .upsert({
+                    id: userId,
+                    full_name: data.full_name,
+                    role: data.role,
+                    district_id: data.district_id,
+                    campus_id: data.campus_id || null,
+                    email: data.email
+                })
+
+            if (profileError) throw new Error(profileError.message)
+
+            results.success++
+        } catch (error: any) {
+            results.failed++
+            results.errors.push({
+                email: userData.email,
+                error: error.message || "Unknown error"
+            })
+        }
+    }
+
+    revalidatePath("/admin")
+    return results
+}
+
+export async function bulkUpdateUsersAction(userIds: string[], updates: {
+    role?: Role;
+    district_id?: string;
+    campus_id?: string;
+}) {
+    const currentUser = await getMyProfile()
+
+    // Only admins can bulk update users. we can add campus_coordinators later if needed
+
+    if (!currentUser || !["admin"].includes(currentUser.role)) {
+        throw new Error("Unauthorized")
+    }
+
+    const supabase = await createClient()
+    const results = {
+        success: 0,
+        failed: 0,
+        errors: [] as Array<{ userId: string; error: string }>
+    }
+
+    for (const userId of userIds) {
+        try {
+            const updateData = { ...updates }
+
+            // Validate permissions
+            if (currentUser.role === "campus_coordinator") {
+                if (!currentUser.campus_id) throw new Error("Account not linked to a campus")
+
+                // Verify target user belongs to same campus
+                const { data: targetUser } = await supabase.from("profiles").select("campus_id").eq("id", userId).single()
+                if (!targetUser || targetUser.campus_id !== currentUser.campus_id) {
+                    throw new Error("You can only edit users from your campus")
+                }
+
+                // Enforce scope
+                updateData.campus_id = currentUser.campus_id
+                updateData.district_id = currentUser.district_id
+
+                // Restrict role changes
+                if (updateData.role && !["participant", "buddy"].includes(updateData.role)) {
+                    throw new Error("Campus Coordinators can only assign Participant or Buddy roles")
+                }
+            }
+
+            const { error } = await supabase
+                .from("profiles")
+                .update({
+                    role: updateData.role,
+                    district_id: updateData.district_id,
+                    campus_id: updateData.campus_id || null
+                })
+                .eq("id", userId)
+
+            if (error) throw error
+
+            results.success++
+        } catch (error: any) {
+            results.failed++
+            results.errors.push({
+                userId,
+                error: error.message || "Unknown error"
+            })
+        }
+    }
+
+    revalidatePath("/admin")
+    return results
 }
