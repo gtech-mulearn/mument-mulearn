@@ -4,7 +4,6 @@ import ProfileCard from "./components/ProfileCard"
 // import StatsCards from "./components/StatsCards"
 import { getMyProfile } from "@/lib/profile"
 import DashboardWelcome from "@/components/DashboardWelcome"
-import { getUserPoints } from "@/lib/points"
 import { getDailyUpdateStats, getCampusStats, getDistrictStats, getPersonalStats } from "@/lib/stats"
 import { getDailyUpdateStats as getCampusDailyStats, getTopContributors, getCampusAnalytics } from "@/lib/campus-stats"
 import AdminStats from "./components/AdminStats"
@@ -19,7 +18,6 @@ export default async function DashboardPage() {
 
   const typedProfile = profile as UserProfile
   const role = typedProfile.role
-  const points = await getUserPoints(typedProfile.id)
 
   // Fetch personal statistics
   const personalStats = await getPersonalStats(typedProfile.id)

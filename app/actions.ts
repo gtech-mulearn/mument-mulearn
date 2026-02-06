@@ -1,10 +1,9 @@
 "use server"
 
 import { createAnnouncement as serviceCreateAnnouncement } from "@/lib/announcements"
-import { createCheckpoint as serviceCreateCheckpoint, CheckpointScope } from "@/lib/checkpoints"
+import { createCheckpointVerification as serviceCreateCheckpointVerification } from "@/lib/checkpoints"
 import { sendBroadcastNotification } from "@/lib/push"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 import webpush from "web-push"
 
 export async function createAnnouncementAction(formData: FormData) {
@@ -21,29 +20,55 @@ export async function createAnnouncementAction(formData: FormData) {
     revalidatePath("/announcements")
 }
 
-export async function createCheckpointAction(formData: FormData) {
-    const summary = formData.get("summary") as string
-    const week_number = parseInt(formData.get("week_number") as string)
-    // Scope is now determined by logic or default to 'team' if team_id is present
-    let scope = formData.get("scope") as CheckpointScope
-    const team_id = formData.get("team_id") as string | null
+export async function createCheckpointVerificationAction(formData: FormData) {
+    const team_id = formData.get("team_id") as string
+    const checkpoint_number = parseInt(formData.get("checkpoint_number") as string)
+    const is_absent = formData.get("is_absent") === "true"
+    const meeting_medium = formData.get("meeting_medium") as string
+    const camera_on = formData.get("camera_on") === "true"
+    const team_introduced = formData.get("team_introduced") === "true"
+    const idea_summary = formData.get("idea_summary") as string
+    const last_week_progress = formData.get("last_week_progress") as string
+    const next_week_target = formData.get("next_week_target") as string
+    const needs_support = formData.get("needs_support") === "true"
+    const support_details = formData.get("support_details") as string
+    const suggestions = formData.get("suggestions") as string
 
-    if (team_id) {
-        scope = "team"
+    // Validation
+    if (!team_id || !checkpoint_number) {
+        throw new Error("Team and checkpoint number are required")
     }
 
-    // Fallback or custom logic if scope not set (though UI should handle standard cases)
-    if (!scope) scope = "global"
+    // If team is absent, skip validation of other fields
+    if (!is_absent) {
+        // All of these are required per database constraint checkpoint_presence_rule
+        if (!meeting_medium || !idea_summary || !last_week_progress || !next_week_target || !suggestions) {
+            throw new Error("All fields are required for present teams. Please fill in all details.")
+        }
+    }
 
-    if (!summary || isNaN(week_number)) return
+    try {
+        await serviceCreateCheckpointVerification({
+            team_id,
+            checkpoint_number,
+            is_absent,
+            meeting_medium: is_absent ? undefined : meeting_medium,
+            camera_on: is_absent ? undefined : camera_on,
+            team_introduced: is_absent ? undefined : team_introduced,
+            idea_summary: is_absent ? undefined : idea_summary,
+            last_week_progress: is_absent ? undefined : last_week_progress,
+            next_week_target: is_absent ? undefined : next_week_target,
+            needs_support: is_absent ? undefined : needs_support,
+            support_details: is_absent ? undefined : support_details,
+            suggestions: is_absent ? undefined : suggestions
+        })
 
-    await serviceCreateCheckpoint({
-        summary,
-        week_number,
-        scope,
-        team_id: team_id || undefined
-    })
-    revalidatePath("/checkpoints")
+        revalidatePath("/checkpoints")
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to create checkpoint verification"
+        console.error("[createCheckpointVerificationAction] Error:", errorMessage, error)
+        throw new Error(errorMessage)
+    }
 }
 
 export async function saveSubscriptionAction(sub: any) {

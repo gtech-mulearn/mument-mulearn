@@ -14,7 +14,7 @@ export const permissions = {
   },
 
   canCreateCheckpoints(role: Role) {
-    return role === "buddy"
+    return ["buddy", "campus_coordinator"].includes(role)
   },
 
   canEditCheckpoints(role: Role) {

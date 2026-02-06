@@ -61,13 +61,57 @@ export interface Database {
             checkpoints: {
                 Row: {
                     id: string
-                    buddy_id: string | null
-                    scope: string // enum checkpoint_scope
-                    team_id: string | null
-                    participant_id: string | null
-                    week_number: number | null
-                    summary: string
-                    created_at: string | null
+                    buddy_id: string
+                    team_id: string
+                    campus_id: string
+                    checkpoint_number: number
+                    is_absent: boolean
+                    meeting_medium: string | null // 'google_meet', 'zoom', 'offline'
+                    camera_on: boolean | null
+                    team_introduced: boolean | null
+                    idea_summary: string | null
+                    last_week_progress: string | null
+                    next_week_target: string | null
+                    needs_support: boolean | null
+                    support_details: string | null
+                    suggestions: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    buddy_id: string
+                    team_id: string
+                    campus_id: string
+                    checkpoint_number: number
+                    is_absent?: boolean
+                    meeting_medium?: string | null
+                    camera_on?: boolean | null
+                    team_introduced?: boolean | null
+                    idea_summary?: string | null
+                    last_week_progress?: string | null
+                    next_week_target?: string | null
+                    needs_support?: boolean | null
+                    support_details?: string | null
+                    suggestions?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    buddy_id?: string
+                    team_id?: string
+                    campus_id?: string
+                    checkpoint_number?: number
+                    is_absent?: boolean
+                    meeting_medium?: string | null
+                    camera_on?: boolean | null
+                    team_introduced?: boolean | null
+                    idea_summary?: string | null
+                    last_week_progress?: string | null
+                    next_week_target?: string | null
+                    needs_support?: boolean | null
+                    support_details?: string | null
+                    suggestions?: string | null
+                    created_at?: string
                 }
             }
             daily_updates: {

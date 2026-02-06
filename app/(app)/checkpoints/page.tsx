@@ -1,20 +1,19 @@
-import { getCheckpoints, getBuddyTeams } from "@/lib/checkpoints"
-// import { CheckpointList } from "./components/CheckpointList" 
-import { Calendar, User, Users } from "lucide-react"
-
+import { getCheckpoints, getBuddyVerifiableTeams } from "@/lib/checkpoints"
 import { permissions } from "@/lib/permissions"
 import { getMyProfile } from "@/lib/profile"
 import { Role } from "@/types/user"
-import CreateCheckpoint from "./components/CreateCheckpoint"
+import CheckpointVerification from "./components/CheckpointVerification"
+import CheckpointExpanded from "./components/CheckpointExpanded"
 
 export default async function CheckpointsPage() {
     const user = await getMyProfile()
     const role = (user?.role || "participant") as Role
     const checkpoints = await getCheckpoints()
 
-    let buddyTeams: { id: string, team_name: string }[] = []
+    let verifiableTeams: { id: string, team_name: string }[] = []
+    
     if (user && role === "buddy") {
-        buddyTeams = await getBuddyTeams(user.id)
+        verifiableTeams = await getBuddyVerifiableTeams(user.id)
     }
 
     return (
@@ -22,45 +21,26 @@ export default async function CheckpointsPage() {
             <header className="mb-6 flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-brand-blue">Checkpoints</h1>
-                    <p className="text-sm text-slate-500">Your assigned checkpoints and tasks</p>
+                    <p className="text-sm text-slate-500">Weekly checkpoint verification records</p>
                 </div>
-                {/* Only Buddies can create checkpoints now (as per new rules) */}
-                {permissions.canCreateCheckpoints(role) && <CreateCheckpoint availableTeams={buddyTeams} />}
+                <div className="flex gap-3">
+                    {/* Checkpoint verification form */}
+                    {permissions.canCreateCheckpoints(role) && (
+                        <CheckpointVerification availableTeams={verifiableTeams} />
+                    )}
+                </div>
             </header>
 
             {checkpoints.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                    <p className="text-gray-500">No checkpoints found for you yet.</p>
+                    <p className="text-gray-500">
+                        {role === "buddy" ? "No checkpoints verified yet. Start verifying team checkpoints!" : "No checkpoints to display."}
+                    </p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {checkpoints.map((c) => (
-                        <article key={c.id} className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-shadow">
-                            <div className="flex items-start justify-between mb-3">
-                                <div className="flex gap-2 mb-2">
-                                    {/* Badges for Scope */}
-                                    {c.scope === 'global' && <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium">Global</span>}
-                                    {c.scope === 'campus' && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">Campus</span>}
-                                    {c.scope === 'team' && <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full font-medium">Team</span>}
-                                    {c.scope === 'participant' && <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">Personal</span>}
-                                </div>
-                                <span className="text-xs text-slate-400 font-mono">#{c.week_number}</span>
-                            </div>
-
-                            <h2 className="text-lg font-bold text-slate-800 mb-2 line-clamp-2">
-                                {/* Title is missing in provided schema for Checkpoints table, using Summary as main content */}
-                                Checkpoint W{c.week_number}
-                            </h2>
-                            <p className="text-sm text-slate-500 mb-4 line-clamp-3">{c.summary}</p>
-
-                            <div className="flex items-center gap-4 text-xs text-slate-400 border-t border-gray-50 pt-3">
-                                <div className="flex items-center gap-1">
-                                    <Calendar size={14} />
-                                    <span>{new Date(c.created_at || "").toLocaleDateString()}</span>
-                                </div>
-                                {/* If we had creator info, we'd show it here */}
-                            </div>
-                        </article>
+                        <CheckpointExpanded key={c.id} checkpoint={c} />
                     ))}
                 </div>
             )}

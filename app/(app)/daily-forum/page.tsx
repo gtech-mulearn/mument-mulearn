@@ -59,6 +59,9 @@ export default async function DailyForumPage(props: { searchParams: Promise<{ pa
                 <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
                     <strong>Note:</strong> Now you can upvote the daily updates you find helpful! Click the Arrow icon on any update to show your appreciation and encourage more great content.
                 </div>
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-400 rounded-lg text-sm text-yellow-700">
+                    <strong>Warning:</strong> Make daily update more unique and personalized to get more upvotes! Avoid posting generic updates that look like everyone else&apos;s. Instead, share specific details about your day, challenges you faced, or insights you gained. This will make your update stand out and attract more upvotes from your peers.
+                </div>
             </header>
             <Suspense fallback={<LoadingSkeleton />}>
                 <DailyForumContent page={page} sort={sort} />
