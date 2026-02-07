@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useToast } from "@/components/ToastProvider"
 import { Loader2 } from "lucide-react"
 
@@ -19,14 +19,12 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
     const { show } = useToast()
     const [availableTeams, setAvailableTeams] = useState<Team[]>([])
     const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set())
+    const [originalTeams, setOriginalTeams] = useState<Set<string>>(new Set())
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [disabledState, setDisabledState] = useState(false)
 
-    useEffect(() => {
-        fetchTeams()
-    }, [])
-
-    const fetchTeams = async () => {
+    const fetchTeams = useCallback(async () => {
         try {
             setLoading(true)
 
@@ -43,7 +41,9 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
             const assigned = (data.availableTeams || [])
                 .filter((team: Team) => team.assigned)
                 .map((team: Team) => team.id)
-            setSelectedTeams(new Set(assigned))
+            const assignedSet: Set<string> = new Set(assigned)
+            setSelectedTeams(assignedSet)
+            setOriginalTeams(assignedSet)
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : "An error occurred"
             show({
@@ -53,6 +53,26 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
         } finally {
             setLoading(false)
         }
+    }, [show])
+
+    useEffect(() => {
+        fetchTeams()
+    }, [fetchTeams])
+
+    useEffect(() => {
+        setDisabledState(disabled)
+    }, [disabled])
+
+    const hasChanges = () => {
+        if (selectedTeams.size !== originalTeams.size) {
+            return true
+        }
+        for (const team of selectedTeams) {
+            if (!originalTeams.has(team)) {
+                return true
+            }
+        }
+        return false
     }
 
     const handleTeamToggle = (teamId: string) => {
@@ -85,6 +105,7 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
                 title: "Success",
                 description: "Team assignments saved successfully!",
             })
+            setOriginalTeams(new Set(selectedTeams))
             onSave?.(Array.from(selectedTeams))
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : "An error occurred"
@@ -122,14 +143,16 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
                             No teams available to assign. All teams in your campus are either assigned to another buddy or you are a member of them.
                         </p>
                     ) : (
-                        availableTeams.map(team => (
+                        [...availableTeams]
+                            .sort((a, b) => a.team_name.localeCompare(b.team_name))
+                            .map(team => (
                             <div key={team.id} className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
                                 <input
                                     type="checkbox"
                                     id={`team-${team.id}`}
                                     checked={selectedTeams.has(team.id)}
                                     onChange={() => handleTeamToggle(team.id)}
-                                    disabled={disabled || saving}
+                                    disabled={disabledState || saving}
                                     className="w-4 h-4 cursor-pointer"
                                 />
                                 <label
@@ -159,10 +182,12 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={disabled || saving || availableTeams.length === 0}
+                            disabled={disabledState || saving || !hasChanges()}
                             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                            {saving ? (
+                            {disabledState ? (
+                                "Disabled"
+                            ) : saving ? (
                                 <>
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     Saving...

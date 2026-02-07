@@ -11,7 +11,7 @@ export async function POST(request: Request) {
         // Get buddy ID first
         const buddyId = await getBuddyId()
         
-        // Verify user has buddy access (user is buddy or has a buddy ID)
+        // Verify user is a buddy (has buddy ID)
         if (!user || !buddyId) {
             return NextResponse.json(
                 { error: "Unauthorized. Only buddies can assign teams." },

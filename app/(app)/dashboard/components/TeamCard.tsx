@@ -15,7 +15,7 @@ export default function TeamCard({ profile }: { profile: UserProfile }) {
             if (!profile.team_id) return
             setLoading(true)
             const members = await getTeamMembersDailyUpdateStatus(profile.team_id)
-            console.log("Fetched team members:", members)
+            // console.log("Fetched team members:", members)
             setTeamMembers(members || [])
             setLoading(false)
         }

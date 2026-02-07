@@ -10,8 +10,16 @@ interface Team {
     team_name: string
 }
 
+interface CheckpointRecord {
+    id: string
+    team_id: string
+    checkpoint_number: number
+    is_absent: boolean
+}
+
 interface CheckpointVerificationProps {
     availableTeams?: Team[]
+    completedCheckpoints?: CheckpointRecord[]
     buddyId?: string
 }
 
@@ -44,7 +52,7 @@ const STEPS = [
     { id: 9, title: "Review & Submit", description: "Your feedback and suggestions" }
 ]
 
-export default function CheckpointVerification({ availableTeams = [] }: CheckpointVerificationProps) {
+export default function CheckpointVerification({ availableTeams = [], completedCheckpoints = [] }: CheckpointVerificationProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [currentStep, setCurrentStep] = useState(1)
     const [loading, setLoading] = useState(false)
@@ -195,6 +203,19 @@ export default function CheckpointVerification({ availableTeams = [] }: Checkpoi
 
     const currentStepData = STEPS[currentStep - 1]
     const selectedTeam = availableTeams.find(t => t.id === formData.team_id)
+    
+    // Filter teams based on already completed checkpoints
+    const getFilteredTeams = () => {
+        if (!formData.checkpoint_number) return availableTeams
+        
+        const completedTeamIds = completedCheckpoints
+            .filter(cp => cp.checkpoint_number === formData.checkpoint_number)
+            .map(cp => cp.team_id)
+        
+        return availableTeams.filter(team => !completedTeamIds.includes(team.id))
+    }
+    
+    const filteredTeams = getFilteredTeams()
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -249,12 +270,15 @@ export default function CheckpointVerification({ availableTeams = [] }: Checkpoi
                                     className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
                                 >
                                     <option value="">Choose a team</option>
-                                    {availableTeams.map(team => (
+                                    {filteredTeams.sort((a, b) => a.team_name.localeCompare(b.team_name)).map(team => (
                                         <option key={team.id} value={team.id}>
                                             {team.team_name}
                                         </option>
                                     ))}
                                 </select>
+                                {filteredTeams.length < availableTeams.length && formData.checkpoint_number > 0 && (
+                                    <p className="text-xs text-orange-600 mt-2">Some teams are excluded as they already completed checkpoint {formData.checkpoint_number}</p>
+                                )}
                                 {selectedTeam && (
                                     <p className="text-xs text-blue-600 mt-2">Selected: {selectedTeam.team_name}</p>
                                 )}

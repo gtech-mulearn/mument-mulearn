@@ -13,7 +13,7 @@ export default async function CheckpointsPage() {
     let verifiableTeams: { id: string, team_name: string }[] = []
     
     if (user && role === "buddy") {
-        verifiableTeams = await getBuddyVerifiableTeams(user.id)
+        verifiableTeams = await getBuddyVerifiableTeams()
     }
 
     return (
@@ -26,7 +26,7 @@ export default async function CheckpointsPage() {
                 <div className="flex gap-3">
                     {/* Checkpoint verification form */}
                     {permissions.canCreateCheckpoints(role) && (
-                        <CheckpointVerification availableTeams={verifiableTeams} />
+                        <CheckpointVerification availableTeams={verifiableTeams} completedCheckpoints={checkpoints} />
                     )}
                 </div>
             </header>

@@ -66,6 +66,7 @@ export default async function AdminPage(props: {
                     users={users}
                     districts={refData.districts}
                     campuses={refData.campuses}
+                    teams={refData.teams}
                     currentPage={page}
                     totalPages={totalPages}
                     currentUserRole={user.role}

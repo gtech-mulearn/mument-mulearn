@@ -1,7 +1,7 @@
 "use server"
 
 import { createAnnouncement as serviceCreateAnnouncement } from "@/lib/announcements"
-import { createCheckpointVerification as serviceCreateCheckpointVerification } from "@/lib/checkpoints"
+import { createCheckpointVerification as serviceCreateCheckpointVerification, deleteCheckpoint as serviceDeleteCheckpoint } from "@/lib/checkpoints"
 import { sendBroadcastNotification } from "@/lib/push"
 import { revalidatePath } from "next/cache"
 import webpush from "web-push"
@@ -71,6 +71,17 @@ export async function createCheckpointVerificationAction(formData: FormData) {
     }
 }
 
+export async function deleteCheckpointAction(checkpointId: string) {
+    try {
+        await serviceDeleteCheckpoint(checkpointId)
+        revalidatePath("/checkpoints")
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to delete checkpoint"
+        console.error("[deleteCheckpointAction] Error:", errorMessage, error)
+        throw new Error(errorMessage)
+    }
+}
+
 export async function saveSubscriptionAction(sub: any) {
     "use server"
     const supabase = await createClient()
@@ -124,7 +135,7 @@ export async function updateFeedbackStatusAction(id: string, status: string) {
     revalidatePath(`/feedback/my-feedback/${id}`)
 }
 
-export async function updateUserProfileAction(userId: string, data: { role: Role; district_id: string; campus_id: string; email: string }) {
+export async function updateUserProfileAction(userId: string, data: { role: Role; district_id: string; campus_id: string; email: string; team_id?: string }) {
     const supabase = await createClient()
     const currentUser = await getMyProfile()
 
@@ -159,8 +170,9 @@ export async function updateUserProfileAction(userId: string, data: { role: Role
         .update({
             role: data.role,
             district_id: data.district_id,
-            campus_id: data.campus_id || null, // Handle empty string as null
-            email: data.email
+            campus_id: data.campus_id || null,
+            email: data.email,
+            team_id: data.team_id || null
         })
         .eq("id", userId)
 

@@ -14,29 +14,34 @@ interface Props {
         district_id: string
         campus_id: string | null
         email: string | null
+        team_id: string | null
     }
     isOpen: boolean
     onClose: () => void
     districts: { id: string, name: string }[]
     campuses: { id: string, name: string }[]
+    teams: { id: string, name: string, team_code: string, campus_id: string }[]
     currentUserRole: Role
     currentUserCampusId?: string | null
     currentUserDistrictId?: string
+    currentUserTeamId?: string | null
 }
 
 const ROLES: Role[] = ["participant", "buddy", "campus_coordinator", "qa_foreman", "qa_watcher", "zonal_lead", "admin"]
 
 export default function EditUserDialog({
-    user, isOpen, onClose, districts, campuses,
-    currentUserRole, currentUserCampusId, currentUserDistrictId
+    user, isOpen, onClose, districts, campuses, teams,
+    currentUserRole, currentUserCampusId, currentUserDistrictId, currentUserTeamId
 }: Props) {
     const [isPending, startTransition] = useTransition()
     const { show: showToast } = useToast()
     const [formData, setFormData] = useState({
         role: user.role,
+        full_name: user.full_name,
         district_id: user.district_id,
         campus_id: user.campus_id || "",
-        email: user.email || ""
+        email: user.email || "",
+        team_id: user.team_id || ""
     })
 
     if (!isOpen) return null
@@ -59,6 +64,15 @@ export default function EditUserDialog({
 
     const isCoordinator = currentUserRole === "campus_coordinator"
     const allowedRoles = isCoordinator ? ["participant", "buddy"] : ROLES
+    
+    // Filter teams based on user's campus
+    const filteredTeams = user.campus_id 
+        ? teams.filter(team => team.campus_id === user.campus_id)
+        : teams
+    
+    // Get current team details for display
+    const currentTeam = user.team_id ? teams.find(t => t.id === user.team_id) : null
+    const isTeamChanged = formData.team_id !== (user.team_id || "")
     
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -83,6 +97,43 @@ export default function EditUserDialog({
                             className="w-full p-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
                             placeholder="user@example.com"
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Full Name</label>
+                        <input
+                            type="text"
+                            value={formData.full_name}
+                            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                            className="w-full p-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
+                            placeholder="Full Name"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Team</label>
+                        {currentTeam && (
+                            <p className="text-xs text-slate-500 mb-2 p-2 bg-slate-50 rounded-lg">Current: <span className="font-semibold text-slate-700">[{currentTeam.team_code}] {currentTeam.name}</span></p>
+                        )}
+                        <select
+                            value={formData.team_id}
+                            onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
+                            className={`w-full p-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all ${
+                                isTeamChanged ? 'ring-2 ring-blue-400' : ''
+                            }`}
+                            disabled={!user.campus_id}
+                        >
+                            <option value="">{user.campus_id ? 'Select Team (Optional)' : 'No campus assigned'}</option>
+                            {filteredTeams.map(t => (
+                                <option key={t.id} value={t.id} selected={t.id === user.team_id}>[{t.team_code}] {t.name}</option>
+                            ))}
+                        </select>
+                        {!user.campus_id && (
+                            <p className="text-xs text-orange-600 mt-1">Assign a campus first to enable team selection</p>
+                        )}
+                        {isTeamChanged && (
+                            <p className="text-xs text-blue-600 mt-1 font-semibold">✓ Team change pending</p>
+                        )}
                     </div>
 
                     <div>

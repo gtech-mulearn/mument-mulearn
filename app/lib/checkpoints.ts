@@ -12,74 +12,64 @@ export async function getCheckpoints() {
 
     if (!user) return []
 
-    // If user is a buddy, fetch their buddy ID
-    let buddyId: string | null = null
-    buddyId = await getBuddyId()
-    if (user.role === "buddy") {
-        if (!buddyId) {
-            console.warn("[getCheckpoints] Buddy record not found for user:", user.id)
+    console.log("[getCheckpoints] Fetching checkpoints for user:", {
+        userId: user.id,
+        role: user.role,
+        campusId: user.campus_id
+    })
+
+    try {
+        // Query with join to teams table to get team_name
+        let query = supabase
+            .from("checkpoints")
+            .select(`
+                *,
+                teams:team_id (
+                    id,
+                    team_name
+                )
+            `)
+
+        // Filter based on role
+        if (user.role === "buddy" || user.role === "campus_coordinator") {
+            if (user.campus_id) {
+                query = query.eq("campus_id", user.campus_id)
+                console.log("[getCheckpoints] Applied campus filter:", user.campus_id)
+            } else {
+                console.warn("[getCheckpoints] Buddy/Coordinator has no campus_id")
+                return []
+            }
+        } else if (user.role === "admin") {
+            console.log("[getCheckpoints] Admin user - no campus filter")
+        } else {
+            console.warn("[getCheckpoints] User role not authorized:", user.role)
             return []
         }
-    }
 
-    // Single efficient query with joins to teams, buddies, and profiles
-    let query = supabase
-        .from("checkpoints")
-        .select(`
-            *,
-            teams:team_id (id, team_name),
-            buddies:buddy_id (
-                id,
-                profiles:user_id (id, full_name)
-            )
-        `)
+        const { data, error, count } = await query
+            .order("created_at", { ascending: false })
+            .limit(50)
 
-    // Filter by buddy_id if user is a buddy
-    if (user.role === "buddy" && buddyId) {
-        query = query.eq("buddy_id", buddyId)
-    }
-    // Filter by campus_id if user is a campus coordinator
-    if (user.role === "campus_coordinator" && user.campus_id) {
-        query = query.eq("campus_id", user.campus_id)
-    }
-    // Admins can see all checkpoints
-    // Non-buddy/non-coordinator participants don't see checkpoints
+        if (error) {
+            console.error("[getCheckpoints] Error object:", error)
+            console.error("[getCheckpoints] Error keys:", Object.keys(error))
+            console.error("[getCheckpoints] Error toString:", error.toString())
+            console.error("[getCheckpoints] Error JSON:", JSON.stringify(error))
+            throw error
+        }
 
-    const { data, error } = await query.order("created_at", { ascending: false }).limit(50)
+        console.log("[getCheckpoints] Success! Found", count || data?.length || 0, "checkpoints")
 
-    if (error) {
-        console.error("[getCheckpoints] Error fetching checkpoints:", error)
+        // Return data with team info included in the teams field
+        return data || []
+    } catch (err) {
+        console.error("[getCheckpoints] Caught error:", err)
+        if (err instanceof Error) {
+            console.error("[getCheckpoints] Error message:", err.message)
+            console.error("[getCheckpoints] Error stack:", err.stack)
+        }
         return []
     }
-
-    console.log("[getCheckpoints] Raw data:", JSON.stringify(data, null, 2))
-
-    // Handle the joined data
-    const checkpoints = data?.map(checkpoint => {
-        const teamData = Array.isArray(checkpoint.teams) ? checkpoint.teams[0] : checkpoint.teams
-        const buddyData = Array.isArray(checkpoint.buddies) ? checkpoint.buddies[0] : checkpoint.buddies
-        const profileData = buddyData?.profiles
-        
-        const mapped = {
-            ...checkpoint,
-            team_name: teamData?.team_name || "Unknown Team",
-            buddy_name: profileData?.full_name || "Unknown Buddy"
-        }
-        
-        console.log("[getCheckpoints] Mapped checkpoint:", {
-            id: mapped.id,
-            team_name: mapped.team_name,
-            buddy_name: mapped.buddy_name,
-            checkpoint_number: mapped.checkpoint_number,
-            is_absent: mapped.is_absent
-        })
-        
-        return mapped
-    }) || []
-
-    console.log("[getCheckpoints] Total checkpoints returned:", checkpoints.length)
-
-    return checkpoints as any[]
 }
 
 export async function getBuddyTeams(userId: string) {
@@ -105,7 +95,7 @@ export async function getBuddyTeams(userId: string) {
     return teams
 }
 
-export async function getBuddyVerifiableTeams(userId: string) {
+export async function getBuddyVerifiableTeams() {
     const supabase = await createClient()
     const user = await getMyProfile()
 
@@ -167,13 +157,13 @@ export async function getBuddyVerifiableTeams(userId: string) {
     console.log("Teams assigned to buddy from buddy_teams:", assignedTeams)
 
     const assignedTeamIds = (assignedTeams || []).map((a: { team_id: string }) => a.team_id)
-    console.log("[getBuddyVerifiableTeams] Buddy is assigned to team IDs:", assignedTeamIds)
+    // console.log("[getBuddyVerifiableTeams] Buddy is assigned to team IDs:", assignedTeamIds)
 
     // Filter out teams assigned to buddy and teams buddy is a member of
     const verifiableTeams = campusTeams.filter((team: { id: string; team_name: string }) => {
         // Exclude if assigned to this buddy
         if (assignedTeamIds.includes(team.id)) {
-            console.log(`[getBuddyVerifiableTeams] Excluding team assigned to buddy: ${team.team_name} (${team.id})`)
+            // console.log(`[getBuddyVerifiableTeams] Excluding team assigned to buddy: ${team.team_name} (${team.id})`)
             return false;
         }
         // Exclude if buddy is a member
@@ -184,7 +174,7 @@ export async function getBuddyVerifiableTeams(userId: string) {
         return true;
     })
 
-    console.log("[getBuddyVerifiableTeams] Verifiable teams:", verifiableTeams.map(t => ({ id: t.id, team_name: t.team_name })))
+    // console.log("[getBuddyVerifiableTeams] Verifiable teams:", verifiableTeams.map(t => ({ id: t.id, team_name: t.team_name })))
 
     return verifiableTeams
 }
@@ -299,4 +289,22 @@ export async function createCheckpointVerification(data: {
     }
 
     console.log("[createCheckpointVerification] Checkpoint created successfully for team:", data.team_id)
+}
+
+export async function deleteCheckpoint(checkpointId: string) {
+    const supabase = await createClient()
+    const user = await getMyProfile()
+
+    if (!user || !permissions.canEditCheckpoints(user.role)) {
+        throw new Error("Unauthorized to delete checkpoints")
+    }
+
+    const { error } = await supabase.from("checkpoints").delete().eq("id", checkpointId)
+
+    if (error) {
+        console.error("[deleteCheckpoint] Database delete error:", error)
+        throw new Error(error.message || "Failed to delete checkpoint")
+    }
+
+    console.log("[deleteCheckpoint] Checkpoint deleted successfully:", checkpointId)
 }

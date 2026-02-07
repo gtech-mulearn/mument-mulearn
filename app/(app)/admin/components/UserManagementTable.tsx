@@ -15,6 +15,7 @@ interface Props {
     users: AdminUserView[]
     districts: { id: string, name: string }[]
     campuses: { id: string, name: string }[]
+    teams: { id: string, name: string, team_code: string, campus_id: string }[]
     currentPage: number
     totalPages: number
     currentUserRole: Role
@@ -25,7 +26,7 @@ interface Props {
 const ROLES: Role[] = ["participant", "buddy", "campus_coordinator", "qa_foreman", "qa_watcher", "zonal_lead", "admin"]
 
 export default function UserManagementTable({
-    users, districts, campuses, currentPage, totalPages,
+    users, districts, campuses, teams, currentPage, totalPages,
     currentUserRole, currentUserCampusId, currentUserDistrictId
 }: Props) {
     const router = useRouter()
@@ -297,6 +298,7 @@ export default function UserManagementTable({
                     onClose={() => setEditingUser(null)}
                     districts={districts}
                     campuses={campuses}
+                    teams={teams}
                     currentUserRole={currentUserRole}
                     currentUserCampusId={currentUserCampusId}
                     currentUserDistrictId={currentUserDistrictId}
