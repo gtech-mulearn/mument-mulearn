@@ -14,8 +14,8 @@ export async function getCheckpoints() {
 
     // If user is a buddy, fetch their buddy ID
     let buddyId: string | null = null
+    buddyId = await getBuddyId()
     if (user.role === "buddy") {
-        buddyId = await getBuddyId()
         if (!buddyId) {
             console.warn("[getCheckpoints] Buddy record not found for user:", user.id)
             return []
