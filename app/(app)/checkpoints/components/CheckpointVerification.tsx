@@ -290,6 +290,7 @@ export default function CheckpointVerification({ availableTeams = [], completedC
                                     type="number"
                                     min={1}
                                     max={4}
+                                    disabled
                                     value={formData.checkpoint_number}
                                     onChange={(e) => handleFieldChange("checkpoint_number", parseInt(e.target.value))}
                                     required

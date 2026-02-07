@@ -60,6 +60,49 @@ export async function getCheckpoints() {
 
         console.log("[getCheckpoints] Success! Found", count || data?.length || 0, "checkpoints")
 
+        // Fetch buddy/coordinator names for all checkpoints
+        // buddy_id can be either buddies.id (for buddies) or users.id (for coordinators)
+        if (data && data.length > 0) {
+            const buddyIds = [...new Set(data.map(c => c.buddy_id))]
+            
+            // Fetch from buddies table (for buddy records)
+            const { data: buddies } = await supabase
+                .from("buddies")
+                .select("id, name")
+                .in("id", buddyIds)
+            
+            const buddyMap = new Map((buddies || []).map(b => [b.id, b.name]))
+            
+            // For buddy_ids not found in buddies table, they are coordinator user IDs
+            // Try to fetch from a profiles table or use the buddy_id as-is
+            const missingIds = buddyIds.filter(id => !buddyMap.has(id))
+            
+            if (missingIds.length > 0) {
+                // Try to fetch from profiles table (if it exists)
+                const { data: profiles } = await supabase
+                    .from("profiles")
+                    .select("id, full_name")
+                    .in("id", missingIds)
+                
+                ;(profiles || []).forEach((p) => {
+                    buddyMap.set(p.id, p.full_name || "Coordinator")
+                })
+                
+                // For any still missing, set as "Coordinator"
+                missingIds.forEach(id => {
+                    if (!buddyMap.has(id)) {
+                        buddyMap.set(id, "Coordinator")
+                    }
+                })
+            }
+            
+            // Attach buddy_name to each checkpoint
+            return data.map((checkpoint) => ({
+                ...checkpoint,
+                buddy_name: buddyMap.get(checkpoint.buddy_id) || "Unknown"
+            }))
+        }
+
         // Return data with team info included in the teams field
         return data || []
     } catch (err) {
@@ -258,6 +301,23 @@ export async function deleteCheckpoint(checkpointId: string) {
 
     if (!user || !permissions.canEditCheckpoints(user.role)) {
         throw new Error("Unauthorized to delete checkpoints")
+    }
+
+    // Fetch checkpoint to verify campus authorization
+    const { data: checkpoint, error: fetchError } = await supabase
+        .from("checkpoints")
+        .select("campus_id")
+        .eq("id", checkpointId)
+        .single()
+
+    if (fetchError || !checkpoint) {
+        console.error("[deleteCheckpoint] Error fetching checkpoint:", fetchError)
+        throw new Error("Checkpoint not found")
+    }
+
+    // Verify user is authorized to delete (must be in same campus or be admin)
+    if (user.role !== "admin" && checkpoint.campus_id !== user.campus_id) {
+        throw new Error("You can only delete checkpoints in your campus")
     }
 
     const { error } = await supabase.from("checkpoints").delete().eq("id", checkpointId)

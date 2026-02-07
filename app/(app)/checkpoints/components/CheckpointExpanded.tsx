@@ -40,9 +40,13 @@ export default function CheckpointExpanded({ checkpoint }: { checkpoint: Checkpo
 				title: "Success",
 				description: "Checkpoint deleted successfully"
 			})
-			setIsOpen(false)
+			// Close confirmation dialog first
+			setShowDeleteConfirm(false)
+			// Then close modal after a brief delay to show success toast
+			setTimeout(() => setIsOpen(false), 500)
 		} catch (error: unknown) {
 			const errorMessage = error instanceof Error ? error.message : "Failed to delete checkpoint"
+			console.error("[CheckpointExpanded] Delete error:", error)
 			showToast({
 				title: "Error",
 				description: errorMessage
