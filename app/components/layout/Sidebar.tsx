@@ -116,14 +116,6 @@ export default function Sidebar({ role, open, onClose }: Props) {
           {["admin", "campus_coordinator"].includes(role) && (
             <NavItem href="/admin" label="Admin" icon={ShieldCheck} isActive={pathname === '/admin'} onClose={onClose} />
           )}
-
-          {role === "admin" && (
-            <>
-              <NavItem href="/admin/teams" label="Teams" icon={ShieldCheck} isActive={pathname === '/admin/teams'} onClose={onClose} />
-            </>
-          )}
-
-
         </ul>
       </nav>
 

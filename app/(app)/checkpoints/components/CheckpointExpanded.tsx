@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, CheckCircle, X, XCircle, Trash2 } from "lucide-react"
-import { deleteCheckpointAction } from "@/actions"
+import { Calendar, CheckCircle, X, XCircle, Trash2, Edit2 } from "lucide-react"
+import { deleteCheckpointAction, updateCheckpointAction } from "@/actions"
 import { useToast } from "@/components/ToastProvider"
 
 type CheckpointRecord = {
@@ -28,6 +28,20 @@ export default function CheckpointExpanded({ checkpoint }: { checkpoint: Checkpo
 	const [isOpen, setIsOpen] = useState(false)
 	const [isDeleting, setIsDeleting] = useState(false)
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+	const [isEditing, setIsEditing] = useState(false)
+	const [isSaving, setIsSaving] = useState(false)
+	const [editForm, setEditForm] = useState({
+		is_absent: checkpoint.is_absent,
+		meeting_medium: checkpoint.meeting_medium || "",
+		camera_on: checkpoint.camera_on ?? false,
+		team_introduced: checkpoint.team_introduced ?? false,
+		idea_summary: checkpoint.idea_summary || "",
+		last_week_progress: checkpoint.last_week_progress || "",
+		next_week_target: checkpoint.next_week_target || "",
+		needs_support: checkpoint.needs_support ?? false,
+		support_details: checkpoint.support_details || "",
+		suggestions: checkpoint.suggestions || ""
+	})
 	const { show: showToast } = useToast()
 
 	const teamName = checkpoint.team_name || checkpoint.teams?.team_name || "Unknown Team"
@@ -54,6 +68,58 @@ export default function CheckpointExpanded({ checkpoint }: { checkpoint: Checkpo
 		} finally {
 			setIsDeleting(false)
 			setShowDeleteConfirm(false)
+		}
+	}
+
+	const handleEditStart = () => {
+		setIsEditing(true)
+	}
+
+	const handleEditCancel = () => {
+		setIsEditing(false)
+		setEditForm({
+			is_absent: checkpoint.is_absent,
+			meeting_medium: checkpoint.meeting_medium || "",
+			camera_on: checkpoint.camera_on ?? false,
+			team_introduced: checkpoint.team_introduced ?? false,
+			idea_summary: checkpoint.idea_summary || "",
+			last_week_progress: checkpoint.last_week_progress || "",
+			next_week_target: checkpoint.next_week_target || "",
+			needs_support: checkpoint.needs_support ?? false,
+			support_details: checkpoint.support_details || "",
+			suggestions: checkpoint.suggestions || ""
+		})
+	}
+
+	const handleSaveEdit = async () => {
+		setIsSaving(true)
+		try {
+			await updateCheckpointAction(checkpoint.id, {
+				is_absent: editForm.is_absent,
+				meeting_medium: editForm.is_absent ? null : editForm.meeting_medium || null,
+				camera_on: editForm.is_absent ? null : editForm.camera_on,
+				team_introduced: editForm.is_absent ? null : editForm.team_introduced,
+				idea_summary: editForm.is_absent ? null : editForm.idea_summary || null,
+				last_week_progress: editForm.is_absent ? null : editForm.last_week_progress || null,
+				next_week_target: editForm.is_absent ? null : editForm.next_week_target || null,
+				needs_support: editForm.is_absent ? null : editForm.needs_support,
+				support_details: editForm.is_absent ? null : editForm.support_details || null,
+				suggestions: editForm.is_absent ? null : editForm.suggestions || null
+			})
+			showToast({
+				title: "Success",
+				description: "Checkpoint updated successfully"
+			})
+			setIsEditing(false)
+		} catch (error: unknown) {
+			const errorMessage = error instanceof Error ? error.message : "Failed to update checkpoint"
+			console.error("[CheckpointExpanded] Update error:", error)
+			showToast({
+				title: "Error",
+				description: errorMessage
+			})
+		} finally {
+			setIsSaving(false)
 		}
 	}
 
@@ -140,6 +206,14 @@ export default function CheckpointExpanded({ checkpoint }: { checkpoint: Checkpo
 							</div>
 							<div className="flex gap-2">
 								<button
+									onClick={() => handleEditStart()}
+									className="text-slate-400 hover:text-blue-600 transition-colors p-2 hover:bg-blue-50 rounded-lg"
+									aria-label="Edit"
+									disabled={isEditing}
+								>
+									<Edit2 size={20} />
+								</button>
+								<button
 									onClick={() => setShowDeleteConfirm(true)}
 									className="text-slate-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg"
 									aria-label="Delete"
@@ -158,9 +232,154 @@ export default function CheckpointExpanded({ checkpoint }: { checkpoint: Checkpo
 						</div>
 
 						<div className="p-6 space-y-4 text-sm text-slate-700">
-							{checkpoint.is_absent ? (
-								<div className="bg-red-50 border border-red-200 rounded-lg p-4">
-									<p className="text-red-700 font-medium">Team was marked absent</p>
+							{isEditing ? (
+								<div className="space-y-4">
+									<div>
+										<label className="font-semibold text-slate-800 block mb-2">Status</label>
+										<div className="flex gap-4">
+											<label className="flex items-center gap-2 cursor-pointer">
+												<input
+													type="radio"
+													name="status"
+													checked={!editForm.is_absent}
+													onChange={() => setEditForm({ ...editForm, is_absent: false })}
+													disabled={isSaving}
+												/>
+												<span>Present</span>
+											</label>
+											<label className="flex items-center gap-2 cursor-pointer">
+												<input
+													type="radio"
+													name="status"
+													checked={editForm.is_absent}
+													onChange={() => setEditForm({ ...editForm, is_absent: true })}
+													disabled={isSaving}
+												/>
+												<span>Absent</span>
+											</label>
+										</div>
+									</div>
+
+									{!editForm.is_absent && (
+										<>
+											<div>
+												<label className="font-semibold text-slate-800 block mb-2">Meeting Medium</label>
+												<select
+													value={editForm.meeting_medium}
+													onChange={(e) => setEditForm({ ...editForm, meeting_medium: e.target.value })}
+													disabled={isSaving}
+													className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+												>
+													<option value="">Select meeting medium</option>
+													<option value="google_meet">Google Meet</option>
+													<option value="zoom">Zoom</option>
+													<option value="offline">Offline</option>
+												</select>
+											</div>
+
+											<div className="space-y-2">
+												<label className="flex items-center gap-2 cursor-pointer">
+													<input
+														type="checkbox"
+														checked={editForm.camera_on}
+														onChange={(e) => setEditForm({ ...editForm, camera_on: e.target.checked })}
+														disabled={isSaving}
+													/>
+													<span className="font-semibold text-slate-800">Camera On</span>
+												</label>
+												<label className="flex items-center gap-2 cursor-pointer">
+													<input
+														type="checkbox"
+														checked={editForm.team_introduced}
+														onChange={(e) => setEditForm({ ...editForm, team_introduced: e.target.checked })}
+														disabled={isSaving}
+													/>
+													<span className="font-semibold text-slate-800">Team Introduced</span>
+												</label>
+												<label className="flex items-center gap-2 cursor-pointer">
+													<input
+														type="checkbox"
+														checked={editForm.needs_support}
+														onChange={(e) => setEditForm({ ...editForm, needs_support: e.target.checked })}
+														disabled={isSaving}
+													/>
+													<span className="font-semibold text-slate-800">Needs Support</span>
+												</label>
+											</div>
+
+											<div>
+												<label className="font-semibold text-slate-800 block mb-2">Idea Summary</label>
+												<textarea
+													value={editForm.idea_summary}
+													onChange={(e) => setEditForm({ ...editForm, idea_summary: e.target.value })}
+													disabled={isSaving}
+													className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+													rows={2}
+												/>
+											</div>
+
+											<div>
+												<label className="font-semibold text-slate-800 block mb-2">Last Week Progress</label>
+												<textarea
+													value={editForm.last_week_progress}
+													onChange={(e) => setEditForm({ ...editForm, last_week_progress: e.target.value })}
+													disabled={isSaving}
+													className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+													rows={2}
+												/>
+											</div>
+
+											<div>
+												<label className="font-semibold text-slate-800 block mb-2">Next Week Target</label>
+												<textarea
+													value={editForm.next_week_target}
+													onChange={(e) => setEditForm({ ...editForm, next_week_target: e.target.value })}
+													disabled={isSaving}
+													className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+													rows={2}
+												/>
+											</div>
+
+											<div>
+												<label className="font-semibold text-slate-800 block mb-2">Support Details</label>
+												<textarea
+													value={editForm.support_details}
+													onChange={(e) => setEditForm({ ...editForm, support_details: e.target.value })}
+													disabled={isSaving}
+													className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+													rows={2}
+												/>
+											</div>
+
+											<div>
+												<label className="font-semibold text-slate-800 block mb-2">Suggestions</label>
+												<textarea
+													value={editForm.suggestions}
+													onChange={(e) => setEditForm({ ...editForm, suggestions: e.target.value })}
+													disabled={isSaving}
+													className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+													rows={2}
+												/>
+											</div>
+										</>
+									)}
+
+									<div className="flex gap-3 pt-4 border-t border-gray-200">
+										<button
+											onClick={handleEditCancel}
+											disabled={isSaving}
+											className="flex-1 py-2 px-4 border border-gray-200 text-slate-700 font-semibold rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+										>
+											Cancel
+										</button>
+										<button
+											onClick={handleSaveEdit}
+											disabled={isSaving}
+											className="flex-1 py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+										>
+											{isSaving ? "Saving..." : "Save Changes"}
+										</button>
+									</div>
 								</div>
 							) : (
 								<>

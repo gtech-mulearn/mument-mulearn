@@ -15,6 +15,7 @@ interface Props {
     totalPages: number
     searchQuery: string
     totalTeams: number
+    currentUserRole: string
 }
 
 interface FormData {
@@ -29,7 +30,8 @@ export default function TeamManagementTable({
     currentPage,
     totalPages,
     searchQuery,
-    totalTeams
+    totalTeams,
+    currentUserRole
 }: Props) {
     const [isPending, startTransition] = useTransition()
     const router = useRouter()
@@ -121,7 +123,7 @@ export default function TeamManagementTable({
     return (
         <div className="space-y-6">
             {/* Search and Filter */}
-            <SearchableTeamFilter teams={teams} campuses={campuses} searchQuery={searchQuery} totalTeams={totalTeams} />
+            <SearchableTeamFilter teams={teams} campuses={campuses} searchQuery={searchQuery} totalTeams={totalTeams} currentUserRole={currentUserRole} />
 
             {/* Create Team Form */}
             {!isCreating ? (

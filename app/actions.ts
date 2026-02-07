@@ -1,10 +1,16 @@
 "use server"
 
 import { createAnnouncement as serviceCreateAnnouncement } from "@/lib/announcements"
-import { createCheckpointVerification as serviceCreateCheckpointVerification, deleteCheckpoint as serviceDeleteCheckpoint } from "@/lib/checkpoints"
+import { createCheckpointVerification as serviceCreateCheckpointVerification, deleteCheckpoint as serviceDeleteCheckpoint, updateCheckpoint as serviceUpdateCheckpoint } from "@/lib/checkpoints"
 import { sendBroadcastNotification } from "@/lib/push"
 import { revalidatePath } from "next/cache"
 import webpush from "web-push"
+import { getMyProfile } from "@/lib/profile"
+import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { updateFeedbackStatus } from "@/lib/feedback"
+import { postReply, toggleReaction } from "@/lib/feedback-thread"
+import { Role } from "@/types/user"
 
 export async function createAnnouncementAction(formData: FormData) {
     const content = formData.get("content") as string
@@ -82,6 +88,31 @@ export async function deleteCheckpointAction(checkpointId: string) {
     }
 }
 
+export async function updateCheckpointAction(
+    checkpointId: string,
+    updates: {
+        is_absent?: boolean
+        meeting_medium?: string | null
+        camera_on?: boolean | null
+        team_introduced?: boolean | null
+        idea_summary?: string | null
+        last_week_progress?: string | null
+        next_week_target?: string | null
+        needs_support?: boolean | null
+        support_details?: string | null
+        suggestions?: string | null
+    }
+) {
+    try {
+        await serviceUpdateCheckpoint(checkpointId, updates)
+        revalidatePath("/checkpoints")
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to update checkpoint"
+        console.error("[updateCheckpointAction] Error:", errorMessage, error)
+        throw new Error(errorMessage)
+    }
+}
+
 export async function saveSubscriptionAction(sub: any) {
     "use server"
     const supabase = await createClient()
@@ -102,15 +133,11 @@ export async function saveSubscriptionAction(sub: any) {
     }, { onConflict: 'endpoint' })
 }
 
-import { getMyProfile } from "@/lib/profile"
-import { createClient } from "@/lib/supabase/server"
-import { Role } from "@/types/user"
-
 export async function updateUserRoleAction(userId: string, newRole: Role) {
     const supabase = await createClient()
     const currentUser = await getMyProfile()
 
-    if (currentUser?.role !== "admin","campus_coordinator") {
+    if (!currentUser || !["admin", "campus_coordinator"].includes(currentUser.role)) {
         throw new Error("Unauthorized")
     }
 
@@ -123,8 +150,6 @@ export async function updateUserRoleAction(userId: string, newRole: Role) {
 
     revalidatePath("/admin")
 }
-
-import { updateFeedbackStatus } from "@/lib/feedback"
 
 export async function updateFeedbackStatusAction(id: string, status: string) {
     await updateFeedbackStatus(id, status)
@@ -217,8 +242,6 @@ export async function updatePasswordAction(formData: FormData) {
     revalidatePath("/profile")
 }
 
-import { createAdminClient } from "@/lib/supabase/admin"
-
 export async function createUserAction(data: {
     email: string;
     full_name: string;
@@ -309,8 +332,6 @@ export async function createUserAction(data: {
 
     revalidatePath("/admin")
 }
-
-import { postReply, toggleReaction } from "@/lib/feedback-thread"
 
 export async function postFeedbackReplyAction(feedbackId: string, message: string) {
     if (!message.trim()) return
