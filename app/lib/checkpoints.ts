@@ -38,8 +38,12 @@ export async function getCheckpoints() {
     if (user.role === "buddy" && buddyId) {
         query = query.eq("buddy_id", buddyId)
     }
-    // Admins and campus coordinators can see all checkpoints
-    // Non-buddy participants don't see checkpoints
+    // Filter by campus_id if user is a campus coordinator
+    if (user.role === "campus_coordinator" && user.campus_id) {
+        query = query.eq("campus_id", user.campus_id)
+    }
+    // Admins can see all checkpoints
+    // Non-buddy/non-coordinator participants don't see checkpoints
 
     const { data, error } = await query.order("created_at", { ascending: false }).limit(50)
 

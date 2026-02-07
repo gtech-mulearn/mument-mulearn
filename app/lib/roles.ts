@@ -3,10 +3,8 @@ import { getMyProfile } from "@/lib/profile"
 
 /**
  * Get buddy record for current user
- * 1. Get user profile (has user.role)
- * 2. Check if user.role === "buddy"
- * 3. If buddy, fetch buddy record from buddies table using user_id
- * 4. Return buddy.id
+ * Fetch buddy record from buddies table using user_id
+ * Works for any user role that has a buddy record
  */
 export async function getBuddyRecord() {
     const supabase = await createClient()
@@ -17,13 +15,8 @@ export async function getBuddyRecord() {
         return null
     }
 
-    // Only buddies have a record in buddies table
-    if (user.role !== "buddy") {
-        console.warn("[getBuddyRecord] User is not a buddy, role:", user.role)
-        return null
-    }
-
     // Fetch buddy record from buddies table using user_id
+    // This works regardless of user role - checks if buddy record exists
     const { data: buddyRecord, error } = await supabase
         .from("buddies")
         .select("id")
