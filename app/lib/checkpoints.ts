@@ -109,7 +109,7 @@ export async function getBuddyVerifiableTeams() {
         return []
     }
 
-    // Get all teams in buddy's campus
+    // Get all teams in buddy's campus (no filtering - allow buddy/coordinator to assign checkpoint to any team)
     const { data: campusTeams, error: teamError } = await supabase
         .from("teams")
         .select("id, team_name")
@@ -125,58 +125,8 @@ export async function getBuddyVerifiableTeams() {
         return []
     }
 
-    // Fetch teams where buddy is a member
-    const { data: memberTeams, error: memberError } = await supabase
-        .from("team_members")
-        .select("team_id")
-        .eq("user_id", user.id)
-
-    if (memberError) {
-        console.error("Error fetching buddy's member teams:", memberError)
-        return []
-    }
-
-    const memberTeamIds = (memberTeams || []).map((m: { team_id: string }) => m.team_id)
-
-    // Fetch teams assigned to this buddy from buddy_teams
-    const buddyId = await getBuddyId()
-    if (!buddyId) {
-        console.warn("Buddy record not found for user:", user.id)
-        return []
-    }
-    const { data: assignedTeams, error: assignedError } = await supabase
-        .from("buddy_teams")
-        .select("team_id")
-        .eq("buddy_id", buddyId)
-
-    if (assignedError) {
-        console.error("Error fetching buddy's assigned teams:", assignedError)
-        return []
-    }
-
-    console.log("Teams assigned to buddy from buddy_teams:", assignedTeams)
-
-    const assignedTeamIds = (assignedTeams || []).map((a: { team_id: string }) => a.team_id)
-    // console.log("[getBuddyVerifiableTeams] Buddy is assigned to team IDs:", assignedTeamIds)
-
-    // Filter out teams assigned to buddy and teams buddy is a member of
-    const verifiableTeams = campusTeams.filter((team: { id: string; team_name: string }) => {
-        // Exclude if assigned to this buddy
-        if (assignedTeamIds.includes(team.id)) {
-            // console.log(`[getBuddyVerifiableTeams] Excluding team assigned to buddy: ${team.team_name} (${team.id})`)
-            return false;
-        }
-        // Exclude if buddy is a member
-        if (memberTeamIds.includes(team.id)) {
-            console.log(`[getBuddyVerifiableTeams] Excluding team where buddy is member: ${team.team_name} (${team.id})`)
-            return false;
-        }
-        return true;
-    })
-
-    // console.log("[getBuddyVerifiableTeams] Verifiable teams:", verifiableTeams.map(t => ({ id: t.id, team_name: t.team_name })))
-
-    return verifiableTeams
+    // Return all teams in campus - buddy and coordinator can assign checkpoint to any team
+    return campusTeams
 }
 
 export async function createCheckpointVerification(data: {
@@ -203,10 +153,21 @@ export async function createCheckpointVerification(data: {
     // Debug: Log incoming data
     console.log("[createCheckpointVerification] Incoming data:", data)
 
-    // Fetch the buddy ID using role-based helper
-    const buddyId = await getBuddyId()
-    if (!buddyId) {
-        throw new Error("Buddy record not found. Please contact admin.")
+    // Get the verifier ID (buddy or coordinator)
+    // For buddy: use buddy ID, for coordinator: use user ID
+    let verifierId: string | null = null
+    
+    if (user.role === "buddy") {
+        verifierId = await getBuddyId()
+        if (!verifierId) {
+            throw new Error("Buddy record not found. Please contact admin.")
+        }
+    } else if (user.role === "campus_coordinator") {
+        verifierId = user.id
+    }
+
+    if (!verifierId) {
+        throw new Error("Unable to identify verifier. Please contact admin.")
     }
 
     // Guard: Ensure team_id is present
@@ -214,7 +175,7 @@ export async function createCheckpointVerification(data: {
         throw new Error("Team ID is required for checkpoint verification.")
     }
 
-    // Verify that the buddy is not a member of the selected team
+    // Verify that the user is not a member of the selected team
     const { data: teamMember, error: teamMemberError } = await supabase
         .from("team_members")
         .select("id")
@@ -230,7 +191,7 @@ export async function createCheckpointVerification(data: {
         throw new Error("You cannot verify your own team's checkpoint")
     }
 
-    // Verify that the team is in the buddy's campus
+    // Verify that the team is in the user's campus
     const { data: team, error: teamError } = await supabase
         .from("teams")
         .select("campus_id")
@@ -264,7 +225,7 @@ export async function createCheckpointVerification(data: {
     }
 
     const payload = {
-        buddy_id: buddyId,
+        buddy_id: verifierId,
         team_id: data.team_id,
         campus_id: team.campus_id,
         checkpoint_number: data.checkpoint_number,

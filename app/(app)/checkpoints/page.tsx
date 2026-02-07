@@ -12,7 +12,8 @@ export default async function CheckpointsPage() {
 
     let verifiableTeams: { id: string, team_name: string }[] = []
     
-    if (user && role === "buddy") {
+    // Both buddy and campus_coordinator can verify checkpoints on teams in their campus
+    if (user && (role === "buddy" || role === "campus_coordinator")) {
         verifiableTeams = await getBuddyVerifiableTeams()
     }
 
