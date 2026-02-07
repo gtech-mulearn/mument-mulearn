@@ -5,10 +5,20 @@ import { Role } from "@/types/user"
 import CheckpointVerification from "./components/CheckpointVerification"
 import CheckpointExpanded from "./components/CheckpointExpanded"
 
-export default async function CheckpointsPage() {
+export default async function CheckpointsPage(props: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+    const searchParams = await props.searchParams
     const user = await getMyProfile()
     const role = (user?.role || "participant") as Role
-    const checkpoints = await getCheckpoints()
+    
+    const page = parseInt((searchParams.page as string) || "1")
+    const limit = 50
+    const offset = (page - 1) * limit
+
+    const checkpointsResult = await getCheckpoints(limit, offset)
+    const checkpoints = checkpointsResult.data
+    const totalPages = checkpointsResult.totalPages
 
     let verifiableTeams: { id: string, team_name: string }[] = []
     
@@ -39,11 +49,36 @@ export default async function CheckpointsPage() {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {checkpoints.map((c) => (
-                        <CheckpointExpanded key={c.id} checkpoint={c} />
-                    ))}
-                </div>
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {checkpoints.map((c) => (
+                            <CheckpointExpanded key={c.id} checkpoint={c} />
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="mt-8 flex justify-center gap-2">
+                            {[...Array(totalPages)].map((_, i) => {
+                                const pageNum = i + 1
+                                const isActive = pageNum === page
+                                return (
+                                    <a
+                                        key={pageNum}
+                                        href={`?page=${pageNum}`}
+                                        className={`px-3 py-2 rounded-lg transition-colors ${
+                                            isActive
+                                                ? "bg-brand-blue text-white"
+                                                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                        }`}
+                                    >
+                                        {pageNum}
+                                    </a>
+                                )
+                            })}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     )

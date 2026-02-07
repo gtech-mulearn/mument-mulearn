@@ -6,16 +6,24 @@ import { Database } from "@/types/database.types"
 
 export type Checkpoint = Database["public"]["Tables"]["checkpoints"]["Row"]
 
-export async function getCheckpoints() {
+export type CheckpointsResult = {
+    data: Checkpoint[]
+    total: number
+    totalPages: number
+}
+
+export async function getCheckpoints(limit: number = 50, offset: number = 0): Promise<CheckpointsResult> {
     const supabase = await createClient()
     const user = await getMyProfile()
 
-    if (!user) return []
+    if (!user) return { data: [], total: 0, totalPages: 0 }
 
     console.log("[getCheckpoints] Fetching checkpoints for user:", {
         userId: user.id,
         role: user.role,
-        campusId: user.campus_id
+        campusId: user.campus_id,
+        limit,
+        offset
     })
 
     try {
@@ -28,7 +36,7 @@ export async function getCheckpoints() {
                     id,
                     team_name
                 )
-            `)
+            `, { count: "exact" })
 
         // Filter based on role
         if (user.role === "buddy" || user.role === "campus_coordinator") {
@@ -37,18 +45,18 @@ export async function getCheckpoints() {
                 console.log("[getCheckpoints] Applied campus filter:", user.campus_id)
             } else {
                 console.warn("[getCheckpoints] Buddy/Coordinator has no campus_id")
-                return []
+                return { data: [], total: 0, totalPages: 0 }
             }
         } else if (user.role === "admin") {
             console.log("[getCheckpoints] Admin user - no campus filter")
         } else {
             console.warn("[getCheckpoints] User role not authorized:", user.role)
-            return []
+            return { data: [], total: 0, totalPages: 0 }
         }
 
         const { data, error, count } = await query
             .order("created_at", { ascending: false })
-            .limit(50)
+            .range(offset, offset + limit - 1)
 
         if (error) {
             console.error("[getCheckpoints] Error object:", error)
@@ -58,7 +66,10 @@ export async function getCheckpoints() {
             throw error
         }
 
-        console.log("[getCheckpoints] Success! Found", count || data?.length || 0, "checkpoints")
+        const total = count || 0
+        const totalPages = Math.ceil(total / limit)
+
+        console.log("[getCheckpoints] Success! Found", total, "checkpoints")
 
         // Fetch buddy/coordinator names for all checkpoints
         // buddy_id can be either buddies.id (for buddies) or users.id (for coordinators)
@@ -97,21 +108,25 @@ export async function getCheckpoints() {
             }
             
             // Attach buddy_name to each checkpoint
-            return data.map((checkpoint) => ({
-                ...checkpoint,
-                buddy_name: buddyMap.get(checkpoint.buddy_id) || "Unknown"
-            }))
+            return {
+                data: data.map((checkpoint) => ({
+                    ...checkpoint,
+                    buddy_name: buddyMap.get(checkpoint.buddy_id) || "Unknown"
+                })),
+                total,
+                totalPages
+            }
         }
 
         // Return data with team info included in the teams field
-        return data || []
+        return { data: data || [], total, totalPages }
     } catch (err) {
         console.error("[getCheckpoints] Caught error:", err)
         if (err instanceof Error) {
             console.error("[getCheckpoints] Error message:", err.message)
             console.error("[getCheckpoints] Error stack:", err.stack)
         }
-        return []
+        return { data: [], total: 0, totalPages: 0 }
     }
 }
 
@@ -328,4 +343,74 @@ export async function deleteCheckpoint(checkpointId: string) {
     }
 
     console.log("[deleteCheckpoint] Checkpoint deleted successfully:", checkpointId)
+}
+
+export async function updateCheckpoint(
+    checkpointId: string,
+    updates: {
+        is_absent?: boolean
+        meeting_medium?: string | null
+        camera_on?: boolean | null
+        team_introduced?: boolean | null
+        idea_summary?: string | null
+        last_week_progress?: string | null
+        next_week_target?: string | null
+        needs_support?: boolean | null
+        support_details?: string | null
+        suggestions?: string | null
+    }
+) {
+    const supabase = await createClient()
+    const user = await getMyProfile()
+
+    // Only admins and campus coordinators can update checkpoints
+    if (!user || !permissions.canEditCheckpoints(user.role)) {
+        throw new Error("Unauthorized to update checkpoints")
+    }
+
+    // Fetch checkpoint to verify campus authorization
+    const { data: checkpoint, error: fetchError } = await supabase
+        .from("checkpoints")
+        .select("campus_id")
+        .eq("id", checkpointId)
+        .single()
+
+    if (fetchError || !checkpoint) {
+        console.error("[updateCheckpoint] Error fetching checkpoint:", fetchError)
+        throw new Error("Checkpoint not found")
+    }
+
+    // Verify user is authorized to update (must be in same campus or be admin)
+    if (user.role !== "admin" && checkpoint.campus_id !== user.campus_id) {
+        throw new Error("You can only update checkpoints in your campus")
+    }
+
+    // Handle null values when is_absent is true
+    const payload = { ...updates }
+    if (updates.is_absent === true) {
+        // When absent, clear all detail fields
+        payload.meeting_medium = null
+        payload.camera_on = null
+        payload.team_introduced = null
+        payload.idea_summary = null
+        payload.last_week_progress = null
+        payload.next_week_target = null
+        payload.needs_support = null
+        payload.support_details = null
+        payload.suggestions = null
+    }
+
+    console.log("[updateCheckpoint] Updating checkpoint with payload:", payload)
+
+    const { error } = await supabase
+        .from("checkpoints")
+        .update(payload)
+        .eq("id", checkpointId)
+
+    if (error) {
+        console.error("[updateCheckpoint] Database update error:", error)
+        throw new Error(error.message || "Failed to update checkpoint")
+    }
+
+    console.log("[updateCheckpoint] Checkpoint updated successfully:", checkpointId)
 }

@@ -46,6 +46,7 @@ export default async function TeamsPage(props: {
                     totalPages={totalPages}
                     searchQuery={search}
                     totalTeams={total}
+                    currentUserRole={user.role}
                 />
             </section>
         </div>

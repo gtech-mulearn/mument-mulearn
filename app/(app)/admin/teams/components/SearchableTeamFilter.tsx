@@ -3,16 +3,17 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Team } from "@/lib/team"
-import { Search, X } from "lucide-react"
+import { Search, University, X } from "lucide-react"
 
 interface SearchableTeamFilterProps {
     teams: Team[]
     campuses: { id: string; name: string }[]
     searchQuery: string
     totalTeams: number
+    currentUserRole: string
 }
 
-export default function SearchableTeamFilter({ teams, campuses, searchQuery, totalTeams }: SearchableTeamFilterProps) {
+export default function SearchableTeamFilter({ teams, campuses, searchQuery, totalTeams, currentUserRole }: SearchableTeamFilterProps) {
     const router = useRouter()
     const [searchInput, setSearchInput] = useState(searchQuery)
     const [selectedCampus, setSelectedCampus] = useState("")
@@ -151,7 +152,8 @@ export default function SearchableTeamFilter({ teams, campuses, searchQuery, tot
                 )}
             </div>
 
-            {/* Campus Filter */}
+            {/* Campus Filter Only for admin not for campus coordinators */}
+            {currentUserRole === "admin" && (
             <div className="relative w-48" ref={campusRef}>
                 <div
                     onClick={() => setIsCampusOpen(!isCampusOpen)}
@@ -160,7 +162,7 @@ export default function SearchableTeamFilter({ teams, campuses, searchQuery, tot
                     }`}
                 >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-gray-400">🏢</span>
+                        <University size={18} className="text-gray-400" />
                         <span className="truncate text-slate-800 text-sm">
                             {selectedCampusName || "All Campus"}
                         </span>
@@ -199,6 +201,7 @@ export default function SearchableTeamFilter({ teams, campuses, searchQuery, tot
                     </div>
                 )}
             </div>
+            )}
 
             {/* Clear All Button */}
             {(searchInput || selectedCampus) && (

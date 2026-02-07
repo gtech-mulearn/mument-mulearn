@@ -94,3 +94,45 @@ export async function getReferenceData() {
         teams: transformedTeams
     }
 }
+
+export type AdminSettings = {
+    id: string
+    checkpoints_enabled: boolean
+    updated_at: string
+    updated_by: string
+}
+
+export async function getAdminSettings(): Promise<AdminSettings | null> {
+    const supabase = await createClient()
+
+    try {
+        const { data, error } = await supabase
+            .from("admin_settings")
+            .select("*")
+            .eq("id", "global")
+            .single()
+
+        if (error) {
+            if (error.code === "PGRST116") {
+                // Settings don't exist, return defaults
+                return {
+                    id: "global",
+                    checkpoints_enabled: true,
+                    updated_at: new Date().toISOString(),
+                    updated_by: ""
+                }
+            }
+            throw error
+        }
+
+        return data as AdminSettings
+    } catch (error) {
+        console.error("Error fetching admin settings:", error)
+        return null
+    }
+}
+
+export async function isCheckpointsEnabled(): Promise<boolean> {
+    const settings = await getAdminSettings()
+    return settings?.checkpoints_enabled ?? true
+}
