@@ -614,3 +614,134 @@ export async function bulkUpdateUsersAction(userIds: string[], updates: {
     revalidatePath("/admin")
     return results
 }
+
+// Team Management Actions
+export async function createTeamAction(formData: FormData) {
+    const team_code = (formData.get("team_code") as string)?.trim()
+    const team_name = (formData.get("team_name") as string)?.trim()
+    const campus_id = formData.get("campus_id") as string
+    const supabase = await createClient()
+    const currentUser = await getMyProfile()
+
+    if (currentUser?.role !== "admin") {
+        throw new Error("Unauthorized")
+    }
+
+    if (!team_code || !team_name || !campus_id) {
+        throw new Error("All fields are required: team code, team name, and campus")
+    }
+
+    // Check for duplicate team code
+    const { data: existing } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("team_code", team_code)
+        .limit(1)
+
+    if (existing && existing.length > 0) {
+        throw new Error("Team code already exists")
+    }
+
+    const { data, error } = await supabase
+        .from("teams")
+        .insert({ team_code, team_name, campus_id })
+        .select(`
+            id, team_code, team_name, campus_id, created_at,
+            colleges:campus_id ( name )
+        `)
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+        throw new Error("Failed to create team")
+    }
+
+    revalidatePath("/admin/teams")
+    return data[0]
+}
+
+export async function updateTeamAction(teamId: string, formData: FormData) {
+    const team_code = (formData.get("team_code") as string)?.trim()
+    const team_name = (formData.get("team_name") as string)?.trim()
+    const campus_id = formData.get("campus_id") as string
+    const supabase = await createClient()
+    const currentUser = await getMyProfile()
+
+    if (currentUser?.role !== "admin") {
+        throw new Error("Unauthorized")
+    }
+
+    if (!team_code || !team_name || !campus_id) {
+        throw new Error("All fields are required")
+    }
+
+    // Check for duplicate team code (excluding current team)
+    const { data: existing } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("team_code", team_code)
+        .neq("id", teamId)
+        .limit(1)
+
+    if (existing && existing.length > 0) {
+        throw new Error("Team code already exists")
+    }
+
+    const { data, error } = await supabase
+        .from("teams")
+        .update({ team_code, team_name, campus_id })
+        .eq("id", teamId)
+        .select(`
+            id, team_code, team_name, campus_id, created_at,
+            colleges:campus_id ( name )
+        `)
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+        throw new Error("Failed to update team")
+    }
+
+    revalidatePath("/admin/teams")
+    return data[0]
+}
+
+export async function deleteTeamAction(teamId: string) {
+    const supabase = await createClient()
+    const currentUser = await getMyProfile()
+
+    if (currentUser?.role !== "admin") {
+        throw new Error("Unauthorized")
+    }
+
+    // Check if team has members
+    const { data: members } = await supabase
+        .from("team_members")
+        .select("id")
+        .eq("team_id", teamId)
+        .limit(1)
+
+    if (members && members.length > 0) {
+        throw new Error("Cannot delete team: it has members")
+    }
+
+    // Check if team has checkpoints
+    const { data: checkpoints } = await supabase
+        .from("checkpoints")
+        .select("id")
+        .eq("team_id", teamId)
+        .limit(1)
+
+    if (checkpoints && checkpoints.length > 0) {
+        throw new Error("Cannot delete team: it has checkpoint records")
+    }
+
+    const { error } = await supabase
+        .from("teams")
+        .delete()
+        .eq("id", teamId)
+
+    if (error) throw error
+
+    revalidatePath("/admin/teams")
+}
