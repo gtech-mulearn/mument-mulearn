@@ -115,6 +115,7 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
         if (error) {
             if (error.code === "PGRST116") {
                 // Settings don't exist, return defaults
+                console.log("[getAdminSettings] Settings not found, returning defaults")
                 return {
                     id: "global",
                     checkpoints_enabled: true,
@@ -122,17 +123,47 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
                     updated_by: ""
                 }
             }
+            console.error("[getAdminSettings] Database error:", error)
             throw error
         }
 
-        return data as AdminSettings
+        if (!data) {
+            console.warn("[getAdminSettings] No data returned")
+            return null
+        }
+
+        // Ensure backward compatibility: if buddies_enabled column doesn't exist, default to true
+        const settings: AdminSettings = {
+            id: data.id,
+            checkpoints_enabled: data.checkpoints_enabled ?? true,
+            updated_at: data.updated_at,
+            updated_by: data.updated_by || ""
+        }
+
+        console.log("[getAdminSettings] Returning fetched settings:", settings)
+        return settings
     } catch (error) {
-        console.error("Error fetching admin settings:", error)
+        console.error("[getAdminSettings] Caught error:", error)
         return null
     }
 }
 
 export async function isCheckpointsEnabled(): Promise<boolean> {
-    const settings = await getAdminSettings()
-    return settings?.checkpoints_enabled ?? true
+    try {
+        const settings = await getAdminSettings()
+        
+        // If settings exist and have a boolean value, return it
+        if (settings !== null && typeof settings.checkpoints_enabled === "boolean") {
+            console.log("[isCheckpointsEnabled] Current setting is:", settings.checkpoints_enabled)
+            return settings.checkpoints_enabled
+        }
+        
+        // Only fallback to true if settings genuinely don't exist in database (first time)
+        console.warn("[isCheckpointsEnabled] Settings not found or checkpoints_enabled is not a boolean")
+        return true
+    } catch (error) {
+        console.error("[isCheckpointsEnabled] Error checking setting:", error)
+        // On unexpected error, default to enabled (fail open)
+        return true
+    }
 }

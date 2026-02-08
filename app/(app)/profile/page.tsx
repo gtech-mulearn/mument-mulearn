@@ -14,8 +14,8 @@ export default async function ProfilePage() {
 
   const streak = await getUserStreak(profile.id)
 
-  // Show BuddyTeamSelect if user is a buddy or has a buddy ID (can have multiple roles)
-  const isBuddy = profile.role === "buddy" || buddyId?.length !== 0
+  // Show BuddyTeamSelect if user is a buddy or has a buddy ID (can have multiple roles) and feature is enabled
+  const isBuddy = (profile.role === "buddy" || buddyId?.length !== 0)
 
   return (
     <div className="max-w-9xl sm:max-w-4/5 md:max-w-11/12 mx-auto p-6">

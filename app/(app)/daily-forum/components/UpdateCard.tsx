@@ -58,7 +58,7 @@ export default function UpdateCard({
                     <span className="mx-2">•</span>
                     <span>{update.college_name ?? 'Updated in older version'}</span>
                 </div>
-                <button
+                {/* <button
                     onClick={() => onUpvote(update.id)}
                     disabled={upvoting === update.id}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
@@ -69,7 +69,7 @@ export default function UpdateCard({
                 >
                     <ArrowBigUpDash size={16} />
                     <span className="text-sm font-medium">{upvoteCount}</span>
-                </button>
+                </button> */}
             </div>
         </div>
     );

@@ -6,6 +6,9 @@ import CheckpointVerification from "./components/CheckpointVerification"
 import CheckpointExpanded from "./components/CheckpointExpanded"
 import ExportButton from "./components/ExportButton"
 
+// Ensure this page is always rendered dynamically (never cached)
+export const dynamic = "force-dynamic"
+
 export default async function CheckpointsPage(props: {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
