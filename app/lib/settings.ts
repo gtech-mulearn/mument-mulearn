@@ -70,6 +70,7 @@ export async function updateAdminSettings(
                 }
 
                 revalidatePath("/admin/settings")
+                revalidatePath("/checkpoints")
                 return {
                     success: true,
                     data: {
@@ -87,6 +88,7 @@ export async function updateAdminSettings(
         }
 
         revalidatePath("/admin/settings")
+        revalidatePath("/checkpoints")
         return {
             success: true,
             data: {
