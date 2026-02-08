@@ -114,7 +114,7 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
 
         if (error) {
             if (error.code === "PGRST116") {
-                // Settings don't exist, create defaults
+                // Settings don't exist, return defaults
                 console.log("[getAdminSettings] Settings not found, returning defaults")
                 return {
                     id: "global",
@@ -132,7 +132,16 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
             return null
         }
 
-        return data as AdminSettings
+        // Ensure backward compatibility: if buddies_enabled column doesn't exist, default to true
+        const settings: AdminSettings = {
+            id: data.id,
+            checkpoints_enabled: data.checkpoints_enabled ?? true,
+            updated_at: data.updated_at,
+            updated_by: data.updated_by || ""
+        }
+
+        console.log("[getAdminSettings] Returning fetched settings:", settings)
+        return settings
     } catch (error) {
         console.error("[getAdminSettings] Caught error:", error)
         return null

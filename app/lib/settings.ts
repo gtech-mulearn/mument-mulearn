@@ -15,7 +15,8 @@ export type SettingsUpdateResult = {
 }
 
 export async function updateAdminSettings(
-    checkpoints_enabled: boolean
+    checkpoints_enabled: boolean,
+    buddies_enabled?: boolean
 ): Promise<SettingsUpdateResult> {
     try {
         const supabase = await createClient()
@@ -36,14 +37,22 @@ export async function updateAdminSettings(
             }
         }
 
+        // Build update object
+        const updateData: any = {
+            checkpoints_enabled,
+            updated_at: new Date().toISOString(),
+            updated_by: user.id
+        }
+
+        // Only include buddies_enabled if provided
+        if (buddies_enabled !== undefined && typeof buddies_enabled === "boolean") {
+            updateData.buddies_enabled = buddies_enabled
+        }
+
         // Try to update existing settings
         const { data, error } = await supabase
             .from("admin_settings")
-            .update({
-                checkpoints_enabled,
-                updated_at: new Date().toISOString(),
-                updated_by: user.id
-            })
+            .update(updateData)
             .eq("id", "global")
             .select()
             .single()
@@ -51,14 +60,23 @@ export async function updateAdminSettings(
         if (error) {
             // If no existing record, insert a new one
             if (error.code === "PGRST116") {
-                const { data: insertData, error: insertError } = await supabase
+                const insertData: any = {
+                    id: "global",
+                    checkpoints_enabled,
+                    updated_at: new Date().toISOString(),
+                    updated_by: user.id
+                }
+
+                // Include buddies_enabled if provided
+                if (buddies_enabled !== undefined) {
+                    insertData.buddies_enabled = buddies_enabled
+                } else {
+                    insertData.buddies_enabled = true
+                }
+
+                const { data: insertedData, error: insertError } = await supabase
                     .from("admin_settings")
-                    .insert({
-                        id: "global",
-                        checkpoints_enabled,
-                        updated_at: new Date().toISOString(),
-                        updated_by: user.id
-                    })
+                    .insert(insertData)
                     .select()
                     .single()
 
@@ -74,9 +92,9 @@ export async function updateAdminSettings(
                 return {
                     success: true,
                     data: {
-                        id: insertData.id,
-                        checkpoints_enabled: insertData.checkpoints_enabled,
-                        updated_at: insertData.updated_at
+                        id: insertedData.id,
+                        checkpoints_enabled: insertedData.checkpoints_enabled,
+                        updated_at: insertedData.updated_at
                     }
                 }
             }

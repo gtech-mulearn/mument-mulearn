@@ -21,7 +21,7 @@ export default function GeneralSettingsPanel({ initialSettings }: Props) {
             setError(null)
             setSuccess(false)
 
-            const result = await updateAdminSettings(enabled)
+            const result = await updateAdminSettings(enabled, settings.checkpoints_enabled)
 
             if (!result.success) {
                 setError(result.error || "Failed to update settings")
@@ -43,6 +43,7 @@ export default function GeneralSettingsPanel({ initialSettings }: Props) {
             setIsSaving(false)
         }
     }
+
 
     if (!settings) {
         return (
@@ -102,6 +103,8 @@ export default function GeneralSettingsPanel({ initialSettings }: Props) {
                         </button>
                     </div>
                 </div>
+
+    
 
                 {settings.updated_at && (
                     <p className="text-xs text-slate-500">
