@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MoveLeft, MoveRight } from "lucide-react";
 import FilterBar from "./FilterBar";
 import UpdateCard from "./UpdateCard";
 import { Role } from "@/types/user";
 import { useToast } from "@/components/ToastProvider";
+import { searchUpdates, upvoteUpdate } from "@/actions/daily-updates";
 
 interface DailyUpdate {
     id: string;
@@ -29,99 +29,86 @@ interface UpdateCardDailyUpdate {
     hasUpvoted?: boolean;
 }
 
-export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 1, limit = 50, initialSort = 'recent', totalRows = 0 }: { dailyUpdates: DailyUpdate[]; colleges: string[]; role?: Role; page?: number; limit?: number; initialSort?: string; totalRows?: number }) {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+export default function DailyForumFilter({ colleges, role, initialSort = 'recent', totalRows = 0 }: { colleges: string[]; role?: Role; initialSort?: string; totalRows?: number }) {
     const { show: showToast } = useToast();
     
-    // Use actual database row count, fallback to dailyUpdates length
-    const actualTotalRows = totalRows > 0 ? totalRows : dailyUpdates.length;
-    const urlPage = parseInt(searchParams.get('page') || '1', 10);
-    const urlSort = searchParams.get('sort') || initialSort;
-    const urlKeyword = searchParams.get('keyword') || '';
-    const urlCollege = searchParams.get('college') || '';
-    const urlDate = searchParams.get('date') || '';
-    
-    const [keyword, setKeyword] = useState(urlKeyword);
-    const [college, setCollege] = useState(urlCollege);
-    const [date, setDate] = useState(urlDate);
-    const [sort, setSort] = useState(urlSort);
+    const [page, setPage] = useState(1);
+    const [keyword, setKeyword] = useState('');
+    const [college, setCollege] = useState('');
+    const [date, setDate] = useState('');
+    const [sort, setSort] = useState(initialSort);
     const [isLoading, setIsLoading] = useState(false);
     const [upvoting, setUpvoting] = useState<string | null>(null);
-    const [upvotedUpdates, setUpvotedUpdates] = useState<Set<string>>(
-        new Set(dailyUpdates.filter(u => u.hasUpvoted).map(u => u.id))
-    );
-    const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(
-        dailyUpdates.reduce((acc, u) => {
-            acc[u.id] = u.upvote_count || 0;
-            return acc;
-        }, {} as Record<string, number>)
-    );
+    const [upvotedUpdates, setUpvotedUpdates] = useState<Set<string>>(new Set());
+    const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>({});
+    
+    const [updates, setUpdates] = useState<DailyUpdate[]>([]);
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const limit = 50;
+
+    // Fetch updates from server
+    const fetchUpdates = async (pageNum: number, filters: { keyword: string; college: string; date: string; sort: string }) => {
+        setIsLoading(true);
+        try {
+            const data = await searchUpdates(
+                filters.keyword,
+                filters.college,
+                filters.date,
+                filters.sort as 'recent' | 'oldest' | 'upvotes',
+                pageNum,
+                limit
+            );
+            setUpdates(data.updates || []);
+            setTotal(data.total || 0);
+            setTotalPages(data.totalPages || 0);
+            // Reset upvote state for new results
+            setUpvotedUpdates(new Set());
+            setUpvoteCounts({});
+        } catch (error) {
+            console.error('Fetch error:', error);
+            showToast({
+                title: "Error",
+                description: "Failed to load updates",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Debounce keyword search to avoid excessive API calls
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setPage(1);
+            fetchUpdates(1, { keyword, college, date, sort });
+        }, 300); // Wait 300ms after user stops typing
+        
+        return () => clearTimeout(timer);
+    }, [keyword, college, date, sort]);
 
     const handleSortChange = (newSort: string) => {
         setSort(newSort);
-        setIsLoading(true);
-        // Reset to page 1 but preserve current filters
-        const params = new URLSearchParams();
-        params.set('page', '1');
-        params.set('sort', newSort);
-        if (keyword) params.set('keyword', keyword);
-        if (college) params.set('college', college);
-        if (date) params.set('date', date);
-        router.push(`?${params.toString()}`);
+        setPage(1);
     };
 
-    const filteredUpdates = dailyUpdates.filter((entry: DailyUpdate) => {
-        const keywordMatch = keyword === '' ||
-            entry.content?.toLowerCase().includes(keyword.toLowerCase()) ||
-            entry.user_name?.toLowerCase().includes(keyword.toLowerCase());
-
-        const collegeMatch = college === '' || entry.college_name === college;
-
-        let dateMatch = true;
-        if (date) {
-            const entryDate = entry.created_at ? new Date(entry.created_at).toLocaleDateString() : '';
-            const filterDate = new Date(date).toLocaleDateString();
-            dateMatch = entryDate === filterDate;
+    const handlePrevClick = () => {
+        if (page > 1) {
+            setPage(page - 1);
+            fetchUpdates(page - 1, { keyword, college, date, sort });
         }
+    };
 
-        return keywordMatch && collegeMatch && dateMatch;
-    }).sort((a, b) => {
-        // Note: Server-side sorting handles date-based ordering
-        // Client-side sorting only for client-side filters
-        if (sort === 'upvotes') {
-            return (upvoteCounts[b.id] || 0) - (upvoteCounts[a.id] || 0);
+    const handleNextClick = () => {
+        if (page < totalPages) {
+            setPage(page + 1);
+            fetchUpdates(page + 1, { keyword, college, date, sort });
         }
-        return 0;
-    });
-
-    // Handle loading state when page changes
-    useEffect(() => {
-        setIsLoading(false);
-    }, [urlPage, sort, college, date, keyword, filteredUpdates.length]);
-
-    //Handle loading state force for timeout
-    useEffect(() => {
-        if (isLoading) {
-            const timer = setTimeout(() => {
-                setIsLoading(false);
-            }, 3000); // Minimum loading time of 3 seconds
-
-            return () => clearTimeout(timer);
-        }
-    }, [isLoading]);
-
-    // Paginate filtered results
-    const itemsPerPage = limit;
-    const totalPages = Math.ceil(filteredUpdates.length / itemsPerPage);
-    const currentPage = Math.max(1, Math.min(urlPage, totalPages));
-    const startIdx = (currentPage - 1) * itemsPerPage;
-    const paginatedUpdates = filteredUpdates.slice(startIdx, startIdx + itemsPerPage);
+    };
 
     const handleUpvote = async (updateId: string) => {
         setUpvoting(updateId);
         
-        // Optimistic update - immediately update UI for better UX
+        // Optimistic update
         const wasUpvoted = upvotedUpdates.has(updateId);
         const newUpvoted = new Set(upvotedUpdates);
         
@@ -141,44 +128,15 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
         setUpvotedUpdates(newUpvoted);
 
         try {
-            const response = await fetch('/api/daily-updates/upvote', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    update_id: updateId,
-                    action: wasUpvoted ? 'remove' : 'upvote'
-                })
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                // Update with actual count from server if available
-                if (result.data?.new_count !== undefined) {
-                    setUpvoteCounts(prev => ({
-                        ...prev,
-                        [updateId]: result.data.new_count
-                    }));
-                }
-            } else {
-                // Revert optimistic update on error
-                const revertedUpvoted = new Set(newUpvoted);
-                if (wasUpvoted) {
-                    revertedUpvoted.add(updateId);
-                } else {
-                    revertedUpvoted.delete(updateId);
-                }
-                setUpvotedUpdates(revertedUpvoted);
-                
+            const result = await upvoteUpdate(updateId, wasUpvoted ? 'remove' : 'upvote');
+            
+            if (result.success && result.data && result.data.new_count !== undefined) {
                 setUpvoteCounts(prev => ({
                     ...prev,
-                    [updateId]: wasUpvoted ? (prev[updateId] || 0) + 1 : Math.max(0, (prev[updateId] || 0) - 1)
+                    [updateId]: result.data!.new_count
                 }));
-                
-                const error = await response.json();
-                showToast({
-                    title: "Upvote Failed",
-                    description: error.message || "Failed to upvote the update."
-                });
+            } else {
+                throw new Error('Failed to upvote');
             }
         } catch (error) {
             // Revert optimistic update on error
@@ -205,20 +163,6 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
         }
     };
 
-    const handlePrevClick = () => {
-        if (currentPage > 1) {
-            setIsLoading(true);
-            router.push(`?page=${currentPage - 1}&sort=${sort}`);
-        }
-    };
-
-    const handleNextClick = () => {
-        if (currentPage < totalPages) {
-            setIsLoading(true);
-            router.push(`?page=${currentPage + 1}&sort=${sort}`);
-        }
-    };
-
     return (
         <div>
             <FilterBar
@@ -231,16 +175,16 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
                 sort={sort}
                 setSort={handleSortChange}
                 colleges={colleges}
-                totalUpdates={actualTotalRows}
-                filteredUpdates={paginatedUpdates.length}
+                totalUpdates={total}
+                filteredUpdates={updates.length}
                 role={role || 'participant'}
-                filteredData={filteredUpdates}
-                currentPage={currentPage}
+                filteredData={updates}
+                currentPage={page}
                 totalPages={totalPages}
-                itemsPerPage={itemsPerPage}
+                itemsPerPage={limit}
             />
 
-            {filteredUpdates.length > 0 ? (
+            {updates.length > 0 ? (
                 <div className="relative">
                     {isLoading && (
                         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -253,7 +197,7 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
                         </div>
                     )}
                     <div className={isLoading ? 'opacity-50 pointer-events-none' : ''}>
-                    {paginatedUpdates.map((entry, index: number) => {
+                    {updates.map((entry, index: number) => {
                         const updateData: UpdateCardDailyUpdate = {
                             ...entry,
                             college_name: entry.college_name || entry.college || undefined
@@ -265,7 +209,7 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
                                 index={index}
                                 upvoting={upvoting}
                                 hasUpvoted={upvotedUpdates.has(entry.id)}
-                                upvoteCount={upvoteCounts[entry.id] || 0}
+                                upvoteCount={upvoteCounts[entry.id] || entry.upvote_count || 0}
                                 onUpvote={handleUpvote}
                             />
                         );
@@ -274,24 +218,20 @@ export default function DailyForumFilter({ dailyUpdates, colleges, role, page = 
                     {/* Pagination Controls */}
                     <div className="mt-8 flex items-center justify-between border-t pt-4">
                         <div className="text-sm text-slate-600">
-                            Showing <span className="font-semibold">{paginatedUpdates.length}</span> of <span className="font-semibold">{filteredUpdates.length}</span> results.
+                            Showing <span className="font-semibold">{updates.length}</span> of <span className="font-semibold">{total}</span> results.
                         </div>
                         <div className="flex gap-2">
                             <button
-                                onClick={() => {
-                                    handlePrevClick();
-                                }}
-                                disabled={currentPage === 1 || isLoading}
+                                onClick={handlePrevClick}
+                                disabled={page === 1 || isLoading}
                                 className={`px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors`}
                             >
                                 <MoveLeft />
                             </button>
-                            <span className="px-4 py-2 text-slate-600">Page {currentPage}/{totalPages}</span>
+                            <span className="px-4 py-2 text-slate-600">Page {page}/{totalPages}</span>
                             <button
-                                onClick={() => {
-                                    handleNextClick();
-                                }}
-                                disabled={currentPage >= totalPages || isLoading}
+                                onClick={handleNextClick}
+                                disabled={page >= totalPages || isLoading}
                                 className={`px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors`}
                             >
                                 <MoveRight />

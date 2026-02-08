@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserProfile, Role } from '@/types/user';
-import { permissions } from '@/lib/permissions';
+import { updateProfile } from '@/actions/profile';
 
 interface EditProfileFormProps {
   profile: UserProfile;
@@ -23,13 +23,6 @@ export default function EditProfileForm({ profile, currentUserRole, districts, c
     campus_id: profile.campus_id || '',
   });
 
-  // Reverting to original logic:
-  // User says "edit option for the role" was the issue. 
-  // We will simply NOT render the role input, or render it read-only if they want to see it.
-  // The original code had: const canEditRole = currentUserRole && permissions.canOverridePermissions(currentUserRole);
-  // We will force this to false or just omit the input to match standard "Edit Profile" behavior.
-  const canEditRole = false;
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -44,23 +37,14 @@ export default function EditProfileForm({ profile, currentUserRole, districts, c
     setError(null);
 
     try {
-      const response = await fetch('/api/profiles/update', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      await updateProfile({
+        full_name: formData.full_name,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update profile');
-      }
-
       router.push('/profile');
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e?.message || 'Failed to update profile');
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +78,9 @@ export default function EditProfileForm({ profile, currentUserRole, districts, c
             />
           </div>
 
-          {/* Role Section - Modified to be Read-Only/Hidden based on user feedback */}
+          {/* Team Name and Id - Read only */}
+
+          {/* Role Section - Read Only */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Role (Read Only)

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useToast } from "@/components/ToastProvider"
 import { Loader2, ChevronDown, Search } from "lucide-react"
+import { getAvailableTeams, assignTeams } from "@/actions/buddy"
 
 interface Team {
     id: string
@@ -30,13 +31,12 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
         try {
             setLoading(true)
 
-            // Fetch available teams (not assigned to other buddies)
-            const response = await fetch("/api/buddy/available-teams")
-            if (!response.ok) {
-                throw new Error("Failed to fetch teams")
+            const data = await getAvailableTeams()
+            
+            if (data.error) {
+                throw new Error(data.error)
             }
 
-            const data = await response.json()
             setAvailableTeams(data.availableTeams || [])
 
             // Set initially selected teams
@@ -59,7 +59,7 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
 
     useEffect(() => {
         fetchTeams()
-    }, [fetchTeams])
+    }, [])
 
     useEffect(() => {
         setDisabledState(disabled)
@@ -91,17 +91,7 @@ export default function BuddyTeamSelect({ onSave, disabled = false }: BuddyTeamS
         try {
             setSaving(true)
 
-            const response = await fetch("/api/buddy/assign-teams", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    teamIds: Array.from(selectedTeams),
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error("Failed to save team assignments")
-            }
+            await assignTeams(Array.from(selectedTeams))
 
             show({
                 title: "Success",

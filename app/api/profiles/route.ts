@@ -36,6 +36,9 @@ export async function GET() {
 
     return new Response(JSON.stringify(profile), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { 
+            "content-type": "application/json",
+            "Cache-Control": "private, max-age=300, stale-while-revalidate=600"
+        },
     })
 }

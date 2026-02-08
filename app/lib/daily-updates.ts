@@ -74,6 +74,96 @@ export async function getDailyUpdates(limit: number = 10, offset: number = 0, so
   return { updates, totalCount: totalCount ?? updates.length }
 }
 
+export async function searchDailyUpdates(
+  keyword: string = "",
+  college: string = "",
+  date: string = "",
+  sortBy: 'recent' | 'oldest' | 'upvotes' = 'recent',
+  page: number = 1,
+  limit: number = 50
+) {
+  const supabase = await createClient()
+
+  // Fetch more records when searching to ensure we get results for user names too
+  const fetchLimit = keyword ? Math.max(limit * 10, 2000) : Math.max(limit * 3, 500)
+  
+  let query = supabase
+    .from("daily_updates")
+    .select(
+      `id, 
+      content, 
+      user_id,
+      created_at,
+      upvote_count,
+      profiles(full_name, colleges(name))`
+    )
+
+  // Apply date filter (server-side)
+  if (date) {
+    const filterDate = new Date(date)
+    const nextDay = new Date(filterDate)
+    nextDay.setDate(nextDay.getDate() + 1)
+    
+    query = query
+      .gte("created_at", filterDate.toISOString())
+      .lt("created_at", nextDay.toISOString())
+  }
+
+  // Apply sorting
+  if (sortBy === 'oldest') {
+    query = query.order("created_at", { ascending: true })
+  } else if (sortBy === 'upvotes') {
+    query = query.order("upvote_count", { ascending: false })
+  } else {
+    query = query.order("created_at", { ascending: false })
+  }
+
+  // Fetch with generous limit for client-side filtering
+  const { data, error } = await query.limit(fetchLimit)
+
+  if (error) {
+    console.error("Search error:", error)
+    return { updates: [], total: 0, page, limit, totalPages: 0 }
+  }
+
+  // Transform and filter by keyword (user_name) and college
+  let allUpdates = (data || []).map((update: any) => ({
+    id: update.id,
+    content: update.content,
+    user_name: update.profiles?.full_name || "Unknown",
+    college_name: update.profiles?.colleges?.name,
+    created_at: update.created_at,
+    upvote_count: update.upvote_count || 0,
+  }))
+
+  // Apply client-side filters to get final results
+  allUpdates = allUpdates.filter(u => {
+    // Filter by user name and content if keyword provided
+    const keywordMatch = !keyword || 
+      u.content.toLowerCase().includes(keyword.toLowerCase()) ||
+      u.user_name.toLowerCase().includes(keyword.toLowerCase())
+    
+    // Filter by college
+    const collegeMatch = !college || u.college_name === college
+    
+    return keywordMatch && collegeMatch
+  })
+
+  // Paginate the filtered results
+  const total = allUpdates.length
+  const totalPages = Math.ceil(total / limit)
+  const offset = (page - 1) * limit
+  const paginatedUpdates = allUpdates.slice(offset, offset + limit)
+
+  return {
+    updates: paginatedUpdates,
+    total,
+    page,
+    limit,
+    totalPages: Math.max(1, totalPages),
+  }
+}
+
 export async function getUserStreak(userId: string) {
   const supabase = await createClient()
 

@@ -1,8 +1,9 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { fetchAnnouncements } from "@/actions/announcements"
 
-type Announcement = { id: string; content: string; created_at: string }
+type Announcement = { id: number; content: string; created_at: string }
 
 export default function ViewAnnouncements() {
   const [announcements, setAnnouncements] = useState<Announcement[] | null>(null)
@@ -10,15 +11,14 @@ export default function ViewAnnouncements() {
 
   useEffect(() => {
     let mounted = true
-    fetch("/api/announcements")
-      .then((r) => r.json())
-      .then((data) => {
+    fetchAnnouncements()
+      .then((result) => {
         if (!mounted) return
-        if (data?.error) {
-          setError(data.error)
+        if (result.error) {
+          setError(result.error)
           return
         }
-        setAnnouncements(data?.announcements || [])
+        setAnnouncements(result?.announcements || [])
       })
       .catch((err) => {
         if (!mounted) return

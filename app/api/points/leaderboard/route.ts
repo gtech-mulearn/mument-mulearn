@@ -22,7 +22,10 @@ export async function GET() {
       full_name: (profiles.find((p: any) => p.id === r.user_id)?.full_name) || null,
     }))
 
-    return NextResponse.json({ leaderboard: list })
+    const response = NextResponse.json({ leaderboard: list })
+    // Cache for 5 minutes (300 seconds) - leaderboard updates less frequently
+    response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+    return response
   } catch (err: any) {
     return NextResponse.json({ error: err?.message ?? "Server error" }, { status: 500 })
   }

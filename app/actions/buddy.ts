@@ -1,41 +1,30 @@
+'use server'
+
 import { createClient } from "@/lib/supabase/server"
 import { getMyProfile } from "@/lib/profile"
 import { getBuddyId } from "@/lib/roles"
-import { NextResponse } from "next/server"
 
-export async function GET() {
+export async function getAvailableTeams() {
     try {
         const supabase = await createClient()
         const user = await getMyProfile()
 
         if (!user) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 403 }
-            )
+            throw new Error("Unauthorized")
         }
 
         if (!user.campus_id) {
-            return NextResponse.json(
-                { error: "User has no campus assigned" },
-                { status: 400 }
-            )
+            throw new Error("User has no campus assigned")
         }
 
-        // Check if user is a buddy
         const buddyId = await getBuddyId()
         const isBuddy = user.role === "buddy" && buddyId
         const isCoordinator = user.role === "campus_coordinator"
 
-        // Allow buddies with buddy record or all campus coordinators
         if (!isBuddy && !isCoordinator) {
-            return NextResponse.json(
-                { error: "Only buddies and campus coordinators can access this" },
-                { status: 403 }
-            )
+            throw new Error("Only buddies and campus coordinators can access this")
         }
 
-        // Get teams in user's campus
         const { data: campusTeams, error: campusTeamsError } = await supabase
             .from("teams")
             .select("id, team_name")
@@ -44,48 +33,37 @@ export async function GET() {
         if (campusTeamsError) throw campusTeamsError
 
         if (!campusTeams || campusTeams.length === 0) {
-            return NextResponse.json({ availableTeams: [] })
+            return { availableTeams: [] }
         }
 
-        // Campus coordinators WITHOUT buddy record see all teams in their campus with no filtering
         if (isCoordinator && !buddyId) {
-            const response = NextResponse.json({ 
+            return {
                 availableTeams: campusTeams.map(team => ({
                     ...team,
                     assigned: false
                 }))
-            })
-            // Cache user-specific data for 5 minutes
-            response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
-            return response
+            }
         }
 
-        // For buddies or coordinators WITH buddy record: use buddy_id filtering
         const effectiveBuddyId = buddyId || null
         if (!effectiveBuddyId) {
-            return NextResponse.json(
-                { error: "Buddy record not found" },
-                { status: 403 }
-            )
+            throw new Error("Buddy record not found")
         }
 
-        // Get teams assigned to other buddies
         const { data: otherBuddyTeams, error: otherBuddyError } = await supabase
             .from("buddy_teams")
             .select("team_id")
-            .neq("buddy_id", effectiveBuddyId!)
+            .neq("buddy_id", effectiveBuddyId)
 
         if (otherBuddyError) throw otherBuddyError
 
-        // Get teams assigned to current user (buddy)
         const { data: currentBuddyTeams, error: currentBuddyError } = await supabase
             .from("buddy_teams")
             .select("team_id")
-            .eq("buddy_id", effectiveBuddyId!)
+            .eq("buddy_id", effectiveBuddyId)
 
         if (currentBuddyError) throw currentBuddyError
 
-        // Get teams where user is a member (exclude these)
         const { data: memberTeams, error: memberError } = await supabase
             .from("team_members")
             .select("team_id")
@@ -97,14 +75,11 @@ export async function GET() {
         const currentAssignedTeamIds = (currentBuddyTeams || []).map(bt => bt.team_id)
         const memberTeamIds = (memberTeams || []).map(tm => tm.team_id)
 
-        // Filter available teams
         const availableTeams = campusTeams
             .filter(team => {
-                // Exclude teams assigned to other buddies
                 if (otherAssignedTeamIds.includes(team.id)) {
                     return false
                 }
-                // Exclude teams where user is a member
                 if (memberTeamIds.includes(team.id)) {
                     return false
                 }
@@ -115,15 +90,45 @@ export async function GET() {
                 assigned: currentAssignedTeamIds.includes(team.id)
             }))
 
-        const response = NextResponse.json({ availableTeams })
-        // Cache user-specific data for 5 minutes
-        response.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
-        return response
-    } catch (error) {
-        console.error("[GET /api/buddy/available-teams] Error:", error)
-        return NextResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
-        )
+        return { availableTeams }
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Failed to fetch teams"
+        return { error: message, availableTeams: [] }
+    }
+}
+
+export async function assignTeams(teamIds: string[]) {
+    try {
+        const supabase = await createClient()
+        const user = await getMyProfile()
+
+        if (!user) {
+            throw new Error("Unauthorized")
+        }
+
+        const buddyId = await getBuddyId()
+        if (!buddyId) {
+            throw new Error("Not a buddy")
+        }
+
+        const { error: deleteError } = await supabase
+            .from("buddy_teams")
+            .delete()
+            .eq("buddy_id", buddyId)
+
+        if (deleteError) throw deleteError
+
+        if (teamIds.length > 0) {
+            const { error: insertError } = await supabase
+                .from("buddy_teams")
+                .insert(teamIds.map(teamId => ({ buddy_id: buddyId, team_id: teamId })))
+
+            if (insertError) throw insertError
+        }
+
+        return { success: true }
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Failed to assign teams"
+        return { error: message }
     }
 }

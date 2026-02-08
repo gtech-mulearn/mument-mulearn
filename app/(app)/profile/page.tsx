@@ -11,6 +11,7 @@ export default async function ProfilePage() {
   if (!profile) redirect("/login")
 
   const buddyId = await getBuddyId()
+
   const streak = await getUserStreak(profile.id)
 
   // Show BuddyTeamSelect if user is a buddy or has a buddy ID (can have multiple roles)
