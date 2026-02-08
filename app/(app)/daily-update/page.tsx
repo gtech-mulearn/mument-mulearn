@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { useToast } from "@/components/ToastProvider"
 import { Calendar } from "lucide-react"
 import confetti from "canvas-confetti"
+import { fetchDailyUpdates, postDailyUpdate } from "@/actions/daily-updates"
 
 type DailyUpdate = {
   id: string
@@ -46,9 +47,7 @@ export default function DailyUpdateClient() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch("/api/daily-updates")
-      if (!res.ok) throw new Error("Failed to fetch updates")
-      const data = await res.json()
+      const data = await fetchDailyUpdates()
       setUpdates(data)
     } catch (err: unknown) {
       const e = err as { message?: string }
@@ -186,24 +185,12 @@ export default function DailyUpdateClient() {
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
       const end = new Date(start.getTime() + 24 * 60 * 60 * 1000)
 
-      const res = await fetch("/api/daily-updates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, startISO: start.toISOString(), endISO: end.toISOString() }),
-      })
-      if (!res.ok) {
-        if (res.status === 409) {
-          // Duplicate for the local day
-          const text = await res.text()
-          const msg = text || 'You have already submitted today.'
-          show({ title: 'Already submitted', description: msg })
-          setError(msg)
-          return
-        }
-        const txt = await res.text()
-        const errMsg = txt || "Failed to save"
-        show({ title: 'Error', description: errMsg })
-        throw new Error(errMsg)
+      const result = await postDailyUpdate(content, start.toISOString(), end.toISOString())
+      
+      if (result.error) {
+        show({ title: 'Error', description: result.error })
+        setError(result.error)
+        return
       }
 
       setContent("")

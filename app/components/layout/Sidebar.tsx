@@ -1,7 +1,7 @@
 
 "use client"
 
-import React from "react"
+import React, { useEffect } from "react"
 
 import Link from "next/link"
 import Image from "next/image"
@@ -51,6 +51,19 @@ const NavItem = ({ href, label, icon: Icon, isActive, onClose }: NavItemProps) =
 
 export default function Sidebar({ role, open, onClose }: Props) {
   const pathname = usePathname()
+
+  useEffect(() => {
+    // Change role name in change role name in local storage to trigger re-render and update sidebar when role changes (e.g., after login or role switch)
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "user_role") {
+        onClose() // Close sidebar to trigger re-render in parent component
+      }
+    }
+    window.addEventListener("storage", handleStorageChange)
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+    }
+  }, [onClose])
 
   return (
     <aside

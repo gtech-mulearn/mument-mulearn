@@ -32,3 +32,6 @@ export async function GET(
     )
   }
 }
+
+// Add cache headers for GET requests
+export const revalidate = 60 // ISR - revalidate every 60 seconds

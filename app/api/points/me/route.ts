@@ -13,7 +13,10 @@ export async function GET() {
   try {
     const points = await getUserPoints(user.id)
     const recent = await getRecentTransactions(user.id)
-    return NextResponse.json({ points, recent })
+    const response = NextResponse.json({ points, recent })
+    // Cache user's points for 2 minutes
+    response.headers.set('Cache-Control', 'private, max-age=120, stale-while-revalidate=300')
+    return response
   } catch (err: any) {
     return NextResponse.json({ error: err?.message ?? "Server error" }, { status: 500 })
   }

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Eye, EyeClosed } from "lucide-react"
+import { signIn } from "@/actions/auth"
 
 type Props = {
   onSignedIn?: () => void
@@ -19,23 +20,12 @@ export default function LoginForm({ onSignedIn }: Props) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(body?.error || 'Login failed')
-        return
-      }
-
-      // Successful sign in — server sets cookies for SSR
+      await signIn(email, password)
+      // Successful sign in
       onSignedIn?.()
     } catch (err) {
-      console.error('Login error', err)
-      setError('Login failed')
+      const error = err as { message?: string }
+      setError(error?.message || 'Login failed')
     } finally {
       setLoading(false)
     }

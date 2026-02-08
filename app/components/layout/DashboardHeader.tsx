@@ -1,9 +1,9 @@
 "use client"
 
 import { Menu, LogOut, Flame } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ToastProvider"
 import NotificationCenter from "@/(app)/components/NotificationCenter"
+import { signOut } from "@/actions/auth"
 
 export default function DashboardHeader({
     onMenuClick,
@@ -12,15 +12,11 @@ export default function DashboardHeader({
     onMenuClick: () => void
     streak?: number
 }) {
-    const router = useRouter()
     const { show } = useToast()
 
     async function handleSignOut() {
         try {
-            const res = await fetch('/api/auth/signout', { method: 'POST' })
-            if (!res.ok) throw new Error('Sign out failed')
-            show({ title: 'Signed out', description: 'You have been signed out.' })
-            router.replace('/login')
+            await signOut()
         } catch (err: unknown) {
             const e = err as { message?: string }
             show({ title: 'Error', description: e?.message || 'Sign out failed' })
@@ -28,7 +24,7 @@ export default function DashboardHeader({
     }
 
     const handleProfileClick = () => {
-        router.push('/profile')
+        // Router is no longer needed since signOut uses redirect
     }
 
     return (

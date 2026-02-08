@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ToastProvider"
 import Link from "next/link"
 import { List } from "lucide-react"
+import { submitFeedback } from "@/actions/feedback"
 
 export default function FeedbackSubmitPage() {
     const router = useRouter()
@@ -26,15 +27,10 @@ export default function FeedbackSubmitPage() {
 
         setLoading(true)
         try {
-            const res = await fetch("/api/feedback", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ subject, description, category }),
-            })
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}))
-                show({ title: "Submission failed", description: err?.error ?? "Unable to submit feedback" })
+            const result = await submitFeedback({ subject, description, category })
+            
+            if (result.error) {
+                show({ title: "Submission failed", description: result.error })
                 setLoading(false)
                 return
             }

@@ -20,29 +20,18 @@ function LoadingSkeleton() {
 }
 
 async function DailyForumContent({ page = 1, sort = 'recent' }: { page?: number; sort?: string }) {
-    // Fetch all data for client-side filtering
-    const result = await getDailyUpdates(10000, 0, sort as 'recent' | 'oldest' | 'upvotes');
-    const dailyUpdates = result.updates;
-    const totalCount = result.totalCount;
-    const userProfile = await getMyProfile();
-    const limit = 50; // Items per page
-
-    if (dailyUpdates.length === 0) {
-        return (
-            <div className="text-center py-8 text-slate-500">
-                No daily updates yet.
-            </div>
-        );
-    }
-
     // Get unique colleges for filter dropdown
+    const result = await getDailyUpdates(1000, 0, sort as 'recent' | 'oldest' | 'upvotes');
+    const dailyUpdates = result.updates;
+    const userProfile = await getMyProfile();
+
     const colleges = [...new Set(dailyUpdates
         .map((u: { college_name?: string }) => u.college_name)
         .filter((name): name is string => Boolean(name)))]
         .sort();
 
     return (
-        <DailyForumFilter dailyUpdates={dailyUpdates} colleges={colleges} role={userProfile?.role} page={page} limit={limit} totalRows={totalCount} />
+        <DailyForumFilter colleges={colleges} role={userProfile?.role} />
     );
 }
 

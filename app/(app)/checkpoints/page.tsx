@@ -1,6 +1,6 @@
 import { getCheckpoints, getBuddyVerifiableTeams } from "@/lib/checkpoints"
-import { permissions } from "@/lib/permissions"
 import { getMyProfile } from "@/lib/profile"
+import { isCheckpointsEnabled } from "@/lib/admin"
 import { Role } from "@/types/user"
 import CheckpointVerification from "./components/CheckpointVerification"
 import CheckpointExpanded from "./components/CheckpointExpanded"
@@ -27,6 +27,8 @@ export default async function CheckpointsPage(props: {
         verifiableTeams = await getBuddyVerifiableTeams()
     }
 
+    const checkpointsEnabled = await isCheckpointsEnabled()
+
     return (
         <div className="py-8 px-6">
             <header className="mb-6 flex justify-between items-center">
@@ -36,7 +38,7 @@ export default async function CheckpointsPage(props: {
                 </div>
                 <div className="flex gap-3">
                     {/* Checkpoint verification form */}
-                    {permissions.canCreateCheckpoints(role) && (
+                    {(checkpointsEnabled) && (
                         <CheckpointVerification availableTeams={verifiableTeams} completedCheckpoints={checkpoints} />
                     )}
                 </div>
