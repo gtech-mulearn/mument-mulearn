@@ -10,6 +10,7 @@ import AdminStats from "./components/AdminStats"
 import CampusStats from "./components/CampusStats"
 import PersonalStats from "./components/PersonalStats"
 import TeamCard from "./components/TeamCard"
+import DemoDay from "./components/DemoDay"
 
 
 export default async function DashboardPage() {
@@ -21,6 +22,7 @@ export default async function DashboardPage() {
 
   // Fetch personal statistics
   const personalStats = await getPersonalStats(typedProfile.id)
+
 
   // Fetch stats only if admin
   let statsProps = null
@@ -49,6 +51,8 @@ export default async function DashboardPage() {
       <div className="space-y-6">
 
         <DashboardWelcome profile={typedProfile} />
+
+        <DemoDay />
 
         <ProfileCard profile={typedProfile} />
 

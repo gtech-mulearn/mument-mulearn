@@ -56,7 +56,7 @@ export default function LandingPage() {
           className="object-contain"
         />
         <div className='mx-20'>
-          <h1 className="text-white text-7xl lg:text-9xl font-black text-center mx-10">
+          <h1 className="text-white text-7xl lg:text-9xl font-black text-center mx-10 select-none">
             where curiosity meets action
           </h1>
         </div>
