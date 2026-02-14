@@ -288,7 +288,7 @@ export default function CheckpointVerification({ availableTeams = [], completedC
                                 <label className="block text-sm font-medium text-slate-700 mb-2">Checkpoint Number (1-4) *</label>
                                 <input
                                     type="number"
-                                    min={1}
+                                    min={2}
                                     max={4}
                                     disabled
                                     value={formData.checkpoint_number}
