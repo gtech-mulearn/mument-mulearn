@@ -21,7 +21,7 @@ export default function GeneralSettingsPanel({ initialSettings }: Props) {
             setError(null)
             setSuccess(false)
 
-            const result = await updateAdminSettings(enabled, settings.checkpoints_enabled)
+            const result = await updateAdminSettings(enabled, settings.allowed_checkpoint_number)
 
             if (!result.success) {
                 setError(result.error || "Failed to update settings")
@@ -31,6 +31,35 @@ export default function GeneralSettingsPanel({ initialSettings }: Props) {
             setSettings({
                 ...settings,
                 checkpoints_enabled: enabled,
+                updated_at: result.data?.updated_at || settings.updated_at
+            })
+            setSuccess(true)
+
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccess(false), 3000)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An error occurred")
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const handleCheckpointNumberChange = async (checkpointNumber: number) => {
+        try {
+            setIsSaving(true)
+            setError(null)
+            setSuccess(false)
+
+            const result = await updateAdminSettings(settings.checkpoints_enabled, checkpointNumber)
+
+            if (!result.success) {
+                setError(result.error || "Failed to update settings")
+                return
+            }
+
+            setSettings({
+                ...settings,
+                allowed_checkpoint_number: checkpointNumber,
                 updated_at: result.data?.updated_at || settings.updated_at
             })
             setSuccess(true)
@@ -101,6 +130,28 @@ export default function GeneralSettingsPanel({ initialSettings }: Props) {
                                 }`}
                             />
                         </button>
+                    </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-medium text-slate-900">Allowed Checkpoint Number</h3>
+                            <p className="text-sm text-slate-500 mt-1">
+                                Set which checkpoint number is available today (1-4)
+                            </p>
+                        </div>
+                        <select
+                            value={settings.allowed_checkpoint_number}
+                            onChange={(e) => handleCheckpointNumberChange(parseInt(e.target.value))}
+                            disabled={isSaving || !settings.checkpoints_enabled}
+                            className="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <option value={1}>Checkpoint 1</option>
+                            <option value={2}>Checkpoint 2</option>
+                            <option value={3}>Checkpoint 3</option>
+                            <option value={4}>Checkpoint 4</option>
+                        </select>
                     </div>
                 </div>
 

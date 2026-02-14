@@ -11,7 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { updateFeedbackStatus } from "@/lib/feedback"
 import { postReply, toggleReaction } from "@/lib/feedback-thread"
 import { Role } from "@/types/user"
-import { isCheckpointsEnabled } from "@/lib/admin"
+import { isCheckpointsEnabled, getAllowedCheckpointNumber } from "@/lib/admin"
 
 export async function createAnnouncementAction(formData: FormData) {
     const content = formData.get("content") as string
@@ -784,4 +784,8 @@ export async function deleteTeamAction(teamId: string) {
     if (error) throw error
 
     revalidatePath("/admin/teams")
+}
+
+export async function getAllowedCheckpointNumberAction(): Promise<number> {
+    return await getAllowedCheckpointNumber()
 }

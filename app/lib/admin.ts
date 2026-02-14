@@ -98,8 +98,8 @@ export async function getReferenceData() {
 export type AdminSettings = {
     id: string
     checkpoints_enabled: boolean
+    allowed_checkpoint_number: number
     updated_at: string
-    updated_by: string
 }
 
 export async function getAdminSettings(): Promise<AdminSettings | null> {
@@ -119,8 +119,8 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
                 return {
                     id: "global",
                     checkpoints_enabled: true,
+                    allowed_checkpoint_number: 2,
                     updated_at: new Date().toISOString(),
-                    updated_by: ""
                 }
             }
             console.error("[getAdminSettings] Database error:", error)
@@ -136,8 +136,8 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
         const settings: AdminSettings = {
             id: data.id,
             checkpoints_enabled: data.checkpoints_enabled ?? true,
+            allowed_checkpoint_number: data.allowed_checkpoint_number,
             updated_at: data.updated_at,
-            updated_by: data.updated_by || ""
         }
 
         console.log("[getAdminSettings] Returning fetched settings:", settings)
@@ -165,5 +165,22 @@ export async function isCheckpointsEnabled(): Promise<boolean> {
         console.error("[isCheckpointsEnabled] Error checking setting:", error)
         // On unexpected error, default to enabled (fail open)
         return true
+    }
+}
+
+export async function getAllowedCheckpointNumber(): Promise<number> {
+    try {
+        const settings = await getAdminSettings()
+        
+        if (settings !== null && typeof settings.allowed_checkpoint_number === "number") {
+            console.log("[getAllowedCheckpointNumber] Current setting is:", settings.allowed_checkpoint_number)
+            return settings.allowed_checkpoint_number
+        }
+        
+        // If not set in database, throw error
+        throw new Error("Allowed checkpoint number not configured in admin settings")
+    } catch (error) {
+        console.error("[getAllowedCheckpointNumber] Error checking setting:", error)
+        throw error
     }
 }

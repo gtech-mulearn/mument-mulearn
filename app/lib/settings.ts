@@ -10,12 +10,14 @@ export type SettingsUpdateResult = {
     data?: {
         id: string
         checkpoints_enabled: boolean
+        allowed_checkpoint_number: number
         updated_at: string
     }
 }
 
 export async function updateAdminSettings(
     checkpoints_enabled: boolean,
+    allowed_checkpoint_number?: number,
     buddies_enabled?: boolean
 ): Promise<SettingsUpdateResult> {
     try {
@@ -44,6 +46,17 @@ export async function updateAdminSettings(
             updated_by: user.id
         }
 
+        // Include allowed_checkpoint_number if provided
+        if (allowed_checkpoint_number !== undefined) {
+            if (typeof allowed_checkpoint_number !== "number" || allowed_checkpoint_number < 1 || allowed_checkpoint_number > 4) {
+                return {
+                    success: false,
+                    error: "Invalid checkpoint number. Must be between 1 and 4"
+                }
+            }
+            updateData.allowed_checkpoint_number = allowed_checkpoint_number
+        }
+
         // Only include buddies_enabled if provided
         if (buddies_enabled !== undefined && typeof buddies_enabled === "boolean") {
             updateData.buddies_enabled = buddies_enabled
@@ -63,6 +76,7 @@ export async function updateAdminSettings(
                 const insertData: any = {
                     id: "global",
                     checkpoints_enabled,
+                    allowed_checkpoint_number: allowed_checkpoint_number ?? 2,
                     updated_at: new Date().toISOString(),
                     updated_by: user.id
                 }
@@ -94,6 +108,7 @@ export async function updateAdminSettings(
                     data: {
                         id: insertedData.id,
                         checkpoints_enabled: insertedData.checkpoints_enabled,
+                        allowed_checkpoint_number: insertedData.allowed_checkpoint_number,
                         updated_at: insertedData.updated_at
                     }
                 }
@@ -112,6 +127,7 @@ export async function updateAdminSettings(
             data: {
                 id: data.id,
                 checkpoints_enabled: data.checkpoints_enabled,
+                allowed_checkpoint_number: data.allowed_checkpoint_number,
                 updated_at: data.updated_at
             }
         }

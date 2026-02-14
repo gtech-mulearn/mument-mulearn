@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
-import { createCheckpointVerificationAction } from "@/actions"
+import { createCheckpointVerificationAction, getAllowedCheckpointNumberAction } from "@/actions"
 import { useToast } from "@/components/ToastProvider"
 
 interface Team {
@@ -56,6 +56,9 @@ export default function CheckpointVerification({ availableTeams = [], completedC
     const [isOpen, setIsOpen] = useState(false)
     const [currentStep, setCurrentStep] = useState(1)
     const [loading, setLoading] = useState(false)
+    const [allowedCheckpointNumber, setAllowedCheckpointNumber] = useState<number>(1)
+    const [isLoadingCheckpoint, setIsLoadingCheckpoint] = useState(true)
+    const [fetchError, setFetchError] = useState<string | null>(null)
     const { show: showToast } = useToast()
 
     const [formData, setFormData] = useState<FormData>({
@@ -73,22 +76,57 @@ export default function CheckpointVerification({ availableTeams = [], completedC
         suggestions: ""
     })
 
+    // Fetch allowed checkpoint number on mount
+    useEffect(() => {
+        const fetchCheckpointNumber = async () => {
+            try {
+                const number = await getAllowedCheckpointNumberAction()
+                setAllowedCheckpointNumber(number)
+                setFormData(prev => ({
+                    ...prev,
+                    checkpoint_number: number
+                }))
+                setFetchError(null)
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : "Failed to fetch checkpoint configuration"
+                console.error("Failed to fetch allowed checkpoint number:", error)
+                setFetchError(errorMsg)
+                // Keep default value of 1
+                setAllowedCheckpointNumber(1)
+            } finally {
+                setIsLoadingCheckpoint(false)
+            }
+        }
+        fetchCheckpointNumber()
+    }, [])
+
     const handleFieldChange = (field: keyof FormData, value: unknown) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }))
+        setFormData(prev => {
+            const updated = {
+                ...prev,
+                [field]: value
+            }
+            // Reset team selection when checkpoint changes
+            if (field === "checkpoint_number") {
+                updated.team_id = ""
+            }
+            // Reset camera when switching to offline meeting
+            if (field === "meeting_medium" && value === "offline") {
+                updated.camera_on = false
+            }
+            return updated
+        })
     }
 
     // Validation for current step
     const isStepValid = (): boolean => {
         switch (currentStep) {
             case 1:
-                return formData.team_id !== "" && formData.checkpoint_number >= 1 && formData.checkpoint_number <= 4
+                return formData.team_id !== "" && formData.checkpoint_number === allowedCheckpointNumber
             case 2:
                 return formData.is_absent !== null
             case 3:
-                return formData.is_absent || formData.camera_on
+                return formData.is_absent || (formData.meeting_medium === "offline" || formData.camera_on)
             case 4:
                 return formData.is_absent || formData.team_introduced
             case 5:
@@ -166,7 +204,7 @@ export default function CheckpointVerification({ availableTeams = [], completedC
             setCurrentStep(1)
             setFormData({
                 team_id: "",
-                checkpoint_number: 2,
+                checkpoint_number: allowedCheckpointNumber,
                 is_absent: false,
                 meeting_medium: "google_meet",
                 camera_on: false,
@@ -198,6 +236,44 @@ export default function CheckpointVerification({ availableTeams = [], completedC
                 <ChevronRight size={18} />
                 Verify Checkpoint
             </button>
+        )
+    }
+
+    // Show error if checkpoint number couldn't be fetched from DB
+    if (fetchError) {
+        return (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl w-full max-w-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-slate-800">Configuration Error</h2>
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="text-slate-400 hover:text-slate-600"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-700 font-medium mb-2">Unable to Load Checkpoint Settings</p>
+                        <p className="text-red-600 text-sm">{fetchError}</p>
+                        <p className="text-red-600 text-sm mt-2">Please contact an administrator to configure the checkpoint settings.</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // Show loading if checkpoint number hasn't loaded yet
+    if (isLoadingCheckpoint) {
+        return (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl w-full max-w-2xl p-6">
+                    <div className="flex items-center justify-center gap-3">
+                        <div className="w-5 h-5 bg-brand-blue rounded-full animate-bounce"></div>
+                        <p className="text-slate-700">Loading checkpoint configuration...</p>
+                    </div>
+                </div>
+            </div>
         )
     }
 
@@ -288,15 +364,15 @@ export default function CheckpointVerification({ availableTeams = [], completedC
                                 <label className="block text-sm font-medium text-slate-700 mb-2">Checkpoint Number (1-4) *</label>
                                 <input
                                     type="number"
-                                    min={2}
-                                    max={4}
+                                    min={allowedCheckpointNumber}
+                                    max={allowedCheckpointNumber}
                                     disabled
                                     value={formData.checkpoint_number}
                                     onChange={(e) => handleFieldChange("checkpoint_number", parseInt(e.target.value))}
                                     required
                                     className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
                                 />
-                                <p className="text-xs text-slate-500 mt-1">Each team can have 4 checkpoints (weekly)</p>
+                                <p className="text-xs text-slate-500 mt-1">Today checkpoint {allowedCheckpointNumber} is configured</p>
                             </div>
                         </div>
                     )}
@@ -362,17 +438,19 @@ export default function CheckpointVerification({ availableTeams = [], completedC
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.camera_on}
-                                                onChange={(e) => handleFieldChange("camera_on", e.target.checked)}
-                                                className="w-4 h-4 rounded border-gray-300"
-                                            />
-                                            <span className="text-sm font-medium text-slate-700">Camera is ON</span>
-                                        </label>
-                                    </div>
+                                    {formData.meeting_medium !== "offline" && (
+                                        <div>
+                                            <label className="flex items-center gap-3 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.camera_on}
+                                                    onChange={(e) => handleFieldChange("camera_on", e.target.checked)}
+                                                    className="w-4 h-4 rounded border-gray-300"
+                                                />
+                                                <span className="text-sm font-medium text-slate-700">Camera is ON</span>
+                                            </label>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
