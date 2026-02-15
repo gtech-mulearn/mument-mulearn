@@ -199,3 +199,80 @@ export async function exportCustom(
         throw new Error(`Failed to export to ${format}`);
     }
 }
+
+/**
+ * Export checkpoint verification results to Excel
+ * @param checkpoints - Array of checkpoint records to export
+ * @param filename - Name of the file (without extension)
+ */
+export async function exportCheckpointsToExcel(
+    checkpoints: any[],
+    filename: string = 'checkpoints'
+) {
+    try {
+        if (!checkpoints || checkpoints.length === 0) {
+            alert('No checkpoints to export');
+            return;
+        }
+
+        // Dynamically import xlsx
+        const XLSX = await import('xlsx');
+
+        // Prepare data for Excel
+        const exportData = checkpoints.map((checkpoint) => {
+            const teamName = typeof checkpoint.teams === 'object' && checkpoint.teams ? checkpoint.teams.team_name : 'N/A';
+            const collegeName = typeof checkpoint.colleges === 'object' && checkpoint.colleges ? checkpoint.colleges.name : 'N/A';
+            const createdDate = checkpoint.created_at ? new Date(checkpoint.created_at).toLocaleDateString() : 'N/A';
+
+            return {
+                'Team Name': teamName,
+                'College': collegeName,
+                'Checkpoint Number': checkpoint.checkpoint_number || 'N/A',
+                'Status': checkpoint.is_absent ? 'Absent' : 'Present',
+                'Meeting Type': checkpoint.meeting_medium ? checkpoint.meeting_medium.replace('_', ' ').charAt(0).toUpperCase() + checkpoint.meeting_medium.slice(1).toLowerCase() : 'N/A',
+                'Camera On': checkpoint.is_camera_on ? 'Yes' : 'No',
+                'Verification Date': createdDate,
+                'Team Introduced': checkpoint.team_introduced ? 'Yes' : 'No',
+                'Idea Summary': checkpoint.idea_summary || '',
+                'Last Week Progress': checkpoint.last_week_progress || '',
+                'Next Week Target': checkpoint.next_week_target || '',
+                'Support Details': checkpoint.support_details || '',
+                'Feedback': checkpoint.suggestions || ''
+            };
+        });
+
+        // Create workbook and worksheet
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Checkpoints');
+
+        // Set column widths for better readability
+        worksheet['!cols'] = [
+            { wch: 20 }, // Team Name
+            { wch: 20 }, // College
+            { wch: 15 }, // Checkpoint Number
+            { wch: 12 }, // Status
+            { wch: 15 }, // Meeting Type
+            { wch: 12 }, // Camera On
+            { wch: 15 }, // Verification Date
+            { wch: 15 }, // Team Introduced
+            { wch: 30 }, // Idea Summary
+            { wch: 30 }, // Last Week Progress
+            { wch: 30 }, // Next Week Target
+            { wch: 30 }, // Support Details
+            { wch: 30 }  // Feedback
+        ];
+
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().split('T')[0];
+        const finalFilename = `${filename}-${timestamp}.xlsx`;
+
+        // Trigger download
+        XLSX.writeFile(workbook, finalFilename);
+        
+        alert('Checkpoints exported successfully!');
+    } catch (error) {
+        console.error('Error exporting checkpoints to Excel:', error);
+        throw new Error(`Failed to export checkpoints: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}

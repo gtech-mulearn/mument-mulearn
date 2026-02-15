@@ -6,6 +6,20 @@ import { Database } from "@/types/database.types"
 
 export type Checkpoint = Database["public"]["Tables"]["checkpoints"]["Row"]
 
+// Extended checkpoint type with joined data
+export interface CheckpointWithJoins extends Checkpoint {
+    teams?: {
+        id: string
+        team_name: string
+    } | null
+    colleges?: {
+        id: string
+        name: string
+    } | null
+    buddy_name?: string
+    college_name?: string | null
+}
+
 export type CheckpointsResult = {
     data: Checkpoint[]
     total: number
@@ -425,4 +439,28 @@ export async function updateCheckpoint(
     }
 
     console.log("[updateCheckpoint] Checkpoint updated successfully:", checkpointId)
+}
+
+/**
+ * Fetch all colleges/campuses for filter dropdown
+ */
+export async function getCollegesForFiltering() {
+    const supabase = await createClient()
+
+    try {
+        const { data, error } = await supabase
+            .from("colleges")
+            .select("id, name")
+            .order("name", { ascending: true })
+
+        if (error) {
+            console.error("[getCollegesForFiltering] Error:", error)
+            return []
+        }
+
+        return data || []
+    } catch (err) {
+        console.error("[getCollegesForFiltering] Caught error:", err)
+        return []
+    }
 }
