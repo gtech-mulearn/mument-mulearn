@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { resetPasswordAction } from "@/actions"
+import { signInWithMagicLink } from "@/actions/auth"
 import Link from "next/link"
 import { ArrowLeft, Loader2, Mail } from "lucide-react"
 
@@ -17,13 +17,11 @@ export default function ForgotPasswordForm() {
         setError('')
 
         try {
-            const form = new FormData()
-            form.append('email', email)
-
-            await resetPasswordAction(form)
+            await signInWithMagicLink(email)
             setSubmitted(true)
-        } catch (err: any) {
-            setError(err.message || "Failed to send reset email")
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to send magic link"
+            setError(message)
         } finally {
             setLoading(false)
         }
@@ -37,7 +35,7 @@ export default function ForgotPasswordForm() {
                 </div>
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Check your email</h2>
                 <p className="text-slate-600 mb-6">
-                    We have sent a password reset link to <strong>{email}</strong>.
+                    We have sent a magic sign-in link to <strong>{email}</strong>.
                 </p>
                 <Link href="/login" className="text-brand-blue font-semibold hover:underline flex items-center justify-center gap-2">
                     <ArrowLeft size={16} />
@@ -50,8 +48,8 @@ export default function ForgotPasswordForm() {
     return (
         <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100/50 backdrop-blur-sm">
             <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-brand-blue mb-2">Forgot Password?</h1>
-                <p className="text-slate-500 text-sm">Enter your email and we'll send you a link to reset your password.</p>
+                <h1 className="text-2xl font-bold text-brand-blue mb-2">Magic Link Login</h1>
+                <p className="text-slate-500 text-sm">Enter your email and we’ll send a secure login link.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 text-left">
@@ -82,10 +80,10 @@ export default function ForgotPasswordForm() {
                     {loading ? (
                         <>
                             <Loader2 size={18} className="animate-spin" />
-                            Sending Link...
+                            Sending magic link...
                         </>
                     ) : (
-                        "Send Reset Link"
+                        "Send Magic Link"
                     )}
                 </button>
 

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Role } from "@/types/user";
 import { exportToExcel } from "@/lib/excel-export";
+import { useToast } from "@/components/ToastProvider";
 
 interface FilterBarProps {
     keyword: string;
@@ -57,6 +58,7 @@ export default function FilterBar({
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
+    const { show } = useToast();
 
     const handleKeywordChange = (value: string) => {
         setKeyword(value);
@@ -96,8 +98,9 @@ export default function FilterBar({
         try {
             setIsExporting(true);
             await exportToExcel(filteredData, 'daily-updates', 'Daily Updates');
+            show({ title: 'Export completed', description: `${filteredData.length} records exported successfully.` });
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Failed to export to Excel');
+            show({ title: 'Export failed', description: error instanceof Error ? error.message : 'Failed to export to Excel' });
         } finally {
             setIsExporting(false);
         }

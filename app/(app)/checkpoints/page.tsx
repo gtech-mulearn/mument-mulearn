@@ -1,4 +1,4 @@
-import { getCheckpoints, getBuddyVerifiableTeams, getCollegesForFiltering } from "@/lib/checkpoints"
+import { getCheckpoints, getBuddyVerifiableTeams, getCollegesForFiltering, CheckpointWithJoins } from "@/lib/checkpoints"
 import { getMyProfile } from "@/lib/profile"
 import { isCheckpointsEnabled } from "@/lib/admin"
 import { Role } from "@/types/user"
@@ -15,9 +15,31 @@ export default async function CheckpointsPage(props: {
     const user = await getMyProfile()
     const role = (user?.role || "participant") as Role
     
-    // Fetch all checkpoints for search and display
-    const allCheckpointsResult = await getCheckpoints(10000, 0)
-    const allCheckpoints = allCheckpointsResult.data
+    // Fetch all checkpoints for search and display (batched to avoid per-request row caps)
+    const pageSize = 1000
+    let offset = 0
+    let total = 0
+    let allCheckpoints: CheckpointWithJoins[] = []
+
+    while (true) {
+        const batchResult = await getCheckpoints(pageSize, offset)
+
+        if (offset === 0) {
+            total = batchResult.total
+        }
+
+        if (!batchResult.data.length) {
+            break
+        }
+
+        allCheckpoints = allCheckpoints.concat(batchResult.data)
+
+        if (allCheckpoints.length >= total || batchResult.data.length < pageSize) {
+            break
+        }
+
+        offset += pageSize
+    }
 
     // Fetch colleges for filter dropdown
     const colleges = await getCollegesForFiltering()

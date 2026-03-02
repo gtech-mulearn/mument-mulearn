@@ -3,9 +3,29 @@
 import { useState } from 'react'
 import { getCheckpointsForExport } from '@/actions/checkpoints'
 import { Sheet } from 'lucide-react'
+import { useToast } from '@/components/ToastProvider'
+
+type ExportCheckpoint = {
+    buddy_name?: string | null
+    colleges?: { name?: string } | null
+    teams?: { team_name?: string } | null
+    checkpoint_number?: number | null
+    is_absent?: boolean | null
+    meeting_medium?: string | null
+    camera_on?: boolean | null
+    team_introduced?: boolean | null
+    idea_summary?: string | null
+    last_week_progress?: string | null
+    next_week_target?: string | null
+    needs_support?: boolean | null
+    support_details?: string | null
+    suggestions?: string | null
+    created_at?: string | null
+}
 
 export default function ExportButton() {
     const [isLoading, setIsLoading] = useState(false)
+    const { show } = useToast()
 
     const handleExport = async (format: 'excel' | 'csv') => {
         try {
@@ -13,7 +33,7 @@ export default function ExportButton() {
             const checkpoints = await getCheckpointsForExport()
 
             if (!checkpoints || checkpoints.length === 0) {
-                alert('No checkpoints to export')
+                show({ title: 'No data', description: 'No checkpoints to export' })
                 return
             }
 
@@ -39,7 +59,7 @@ export default function ExportButton() {
             }
 
             // Transform checkpoint data for export
-            const exportData = checkpoints.map((cp: any) => {
+            const exportData = (checkpoints as ExportCheckpoint[]).map((cp) => {
                 const teamName = typeof cp.teams === 'object' && cp.teams ? cp.teams.team_name : ''
                 const collegeName = typeof cp.colleges === 'object' && cp.colleges ? cp.colleges.name : ''
                 return {
@@ -66,9 +86,11 @@ export default function ExportButton() {
             } else {
                 await exportCustom(exportData, columnsMap, 'checkpoints', 'csv')
             }
+
+            show({ title: 'Export completed', description: `${exportData.length} checkpoint records exported successfully.` })
         } catch (error) {
             console.error('Export failed:', error)
-            alert('Failed to export. Please try again.')
+            show({ title: 'Export failed', description: 'Failed to export. Please try again.' })
         } finally {
             setIsLoading(false)
         }

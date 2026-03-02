@@ -5,6 +5,7 @@ import { Search, X, Download } from "lucide-react"
 import { CheckpointWithJoins } from "@/lib/checkpoints"
 import { Role } from "@/types/user"
 import { exportCheckpointsToExcel } from "@/lib/excel-export"
+import { useToast } from "@/components/ToastProvider"
 
 interface CheckpointSearchProps {
     checkpoints: CheckpointWithJoins[]
@@ -18,6 +19,7 @@ export default function CheckpointSearch({ checkpoints, colleges, userRole, onFi
     const [selectedCollege, setSelectedCollege] = useState<string>("")
     const [selectedCheckpoint, setSelectedCheckpoint] = useState<string>("")
     const [isExporting, setIsExporting] = useState(false)
+    const { show } = useToast()
 
     // Get unique checkpoint numbers from data
     const uniqueCheckpoints = useMemo(() => {
@@ -65,10 +67,29 @@ export default function CheckpointSearch({ checkpoints, colleges, userRole, onFi
     const handleExport = async () => {
         try {
             setIsExporting(true)
-            await exportCheckpointsToExcel(filteredCheckpoints, "checkpoint-results")
+            const selectedCollegeName = selectedCollege
+                ? colleges.find((college) => college.id === selectedCollege)?.name
+                : null
+
+            const normalizedCollegeName = selectedCollegeName
+                ? selectedCollegeName
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-+|-+$/g, "")
+                : ""
+
+            const exportFileName = normalizedCollegeName
+                ? `checkpoint-results-${normalizedCollegeName}`
+                : "checkpoint-results"
+
+            await exportCheckpointsToExcel(filteredCheckpoints, exportFileName)
+            show({
+                title: "Export completed",
+                description: `${filteredCheckpoints.length} checkpoint records exported successfully.`
+            })
         } catch (error) {
             console.error("Failed to export:", error)
-            alert("Failed to export to Excel")
+            show({ title: "Export failed", description: "Failed to export checkpoints to Excel." })
         } finally {
             setIsExporting(false)
         }

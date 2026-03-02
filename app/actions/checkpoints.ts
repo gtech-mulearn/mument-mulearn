@@ -5,26 +5,43 @@ import { createClient } from '@/lib/supabase/server'
 export async function getCheckpointsForExport() {
     try {
         const supabase = await createClient()
+        const pageSize = 1000
+        let offset = 0
+        const data: any[] = []
 
-        const { data, error } = await supabase
-            .from('checkpoints')
-            .select(`
-                *,
-                teams:team_id (
-                    id,
-                    team_name
-                ),
-                colleges:campus_id (
-                    id,
-                    name
-                )
-            `)
-            .order('created_at', { ascending: false })
-            .limit(1000)
+        while (true) {
+            const { data: batch, error } = await supabase
+                .from('checkpoints')
+                .select(`
+                    *,
+                    teams:team_id (
+                        id,
+                        team_name
+                    ),
+                    colleges:campus_id (
+                        id,
+                        name
+                    )
+                `)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + pageSize - 1)
 
-        if (error) {
-            console.error('Error fetching checkpoints for export:', error)
-            return null
+            if (error) {
+                console.error('Error fetching checkpoints for export:', error)
+                return null
+            }
+
+            if (!batch || batch.length === 0) {
+                break
+            }
+
+            data.push(...batch)
+
+            if (batch.length < pageSize) {
+                break
+            }
+
+            offset += pageSize
         }
 
         // Fetch buddy names for all checkpoints

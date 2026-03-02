@@ -53,8 +53,8 @@ export default function LoginForm({ onSignedIn }: Props) {
         <div>
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-sm font-medium text-blue-700">Password</label>
-            <a href="/forgot-password" className="text-xs font-semibold text-brand-blue hover:text-blue-800 hover:underline">
-              Forgot password?
+            <a href="/magic-link" className="text-xs font-semibold text-brand-blue hover:text-blue-800 hover:underline">
+              Sign in with magic link
             </a>
           </div>
           <div className="relative mt-1">
@@ -93,15 +93,6 @@ export default function LoginForm({ onSignedIn }: Props) {
         <p id="login-error" className="text-sm text-red-600 mt-2">
           {error}
         </p>
-      )}
-
-      {loading && (
-        <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-2xl">
-          <div>
-            <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8 mb-4"></div>
-            <div className="text-blue-700 text-center">Processing...</div>
-          </div>
-        </div>
       )}
     </div>
   )

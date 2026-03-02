@@ -12,6 +12,22 @@ export interface ExportData {
     upvote_count: number;
 }
 
+type CheckpointExportItem = {
+    teams?: { team_name?: string } | null
+    colleges?: { name?: string } | null
+    checkpoint_number?: number | null
+    is_absent?: boolean | null
+    meeting_medium?: string | null
+    is_camera_on?: boolean | null
+    team_introduced?: boolean | null
+    idea_summary?: string | null
+    last_week_progress?: string | null
+    next_week_target?: string | null
+    support_details?: string | null
+    suggestions?: string | null
+    created_at?: string | null
+}
+
 /**
  * Export data to Excel file
  * @param data - Array of data to export
@@ -29,8 +45,7 @@ export async function exportToExcel(
         console.log('Data length:', data.length);
 
         if (!data || data.length === 0) {
-            alert('No data to export');
-            return;
+            throw new Error('No data to export');
         }
 
         // Dynamically import xlsx to keep bundle size down
@@ -77,7 +92,6 @@ export async function exportToExcel(
         XLSX.writeFile(workbook, finalFilename);
         
         console.log('Export completed successfully');
-        alert('File exported successfully!');
     } catch (error) {
         console.error('Error exporting to Excel:', error);
         console.error('Error details:', error instanceof Error ? error.message : JSON.stringify(error));
@@ -96,8 +110,7 @@ export function exportToCSV(
 ) {
     try {
         if (data.length === 0) {
-            alert('No data to export');
-            return;
+            throw new Error('No data to export');
         }
 
         const headers = ['Student Name', 'College', 'Update', 'Date', 'Upvotes'];
@@ -149,8 +162,7 @@ export async function exportCustom(
 ) {
     try {
         if (data.length === 0) {
-            alert('No data to export');
-            return;
+            throw new Error('No data to export');
         }
 
         // Transform data based on columnsMap
@@ -206,13 +218,12 @@ export async function exportCustom(
  * @param filename - Name of the file (without extension)
  */
 export async function exportCheckpointsToExcel(
-    checkpoints: any[],
+    checkpoints: CheckpointExportItem[],
     filename: string = 'checkpoints'
 ) {
     try {
         if (!checkpoints || checkpoints.length === 0) {
-            alert('No checkpoints to export');
-            return;
+            throw new Error('No checkpoints to export');
         }
 
         // Dynamically import xlsx
@@ -269,8 +280,6 @@ export async function exportCheckpointsToExcel(
 
         // Trigger download
         XLSX.writeFile(workbook, finalFilename);
-        
-        alert('Checkpoints exported successfully!');
     } catch (error) {
         console.error('Error exporting checkpoints to Excel:', error);
         throw new Error(`Failed to export checkpoints: ${error instanceof Error ? error.message : 'Unknown error'}`);
