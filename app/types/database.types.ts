@@ -123,6 +123,62 @@ export interface Database {
                     college_id: string | null
                 }
             }
+            final_submissions: {
+                Row: {
+                    id: string
+                    user_id: string
+                    team_id: string
+                    team_name: string
+                    team_code: string | null
+                    full_name: string
+                    email: string | null
+                    campus_id: string | null
+                    campus_name: string | null
+                    district_id: string | null
+                    district_name: string | null
+                    role: Database["public"]["Enums"]["user_role"]
+                    drive_link: string
+                    submitted_at: string
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    team_id: string
+                    team_name: string
+                    team_code?: string | null
+                    full_name: string
+                    email?: string | null
+                    campus_id?: string | null
+                    campus_name?: string | null
+                    district_id?: string | null
+                    district_name?: string | null
+                    role: Database["public"]["Enums"]["user_role"]
+                    drive_link: string
+                    submitted_at?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    team_id?: string
+                    team_name?: string
+                    team_code?: string | null
+                    full_name?: string
+                    email?: string | null
+                    campus_id?: string | null
+                    campus_name?: string | null
+                    district_id?: string | null
+                    district_name?: string | null
+                    role?: Database["public"]["Enums"]["user_role"]
+                    drive_link?: string
+                    submitted_at?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
             feedback: {
                 Row: {
                     id: string

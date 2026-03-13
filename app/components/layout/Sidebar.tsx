@@ -18,6 +18,7 @@ import {
   Inbox,
   Megaphone,
   ShieldCheck,
+  FileCheck2,
 } from "lucide-react"
 
 type Props = {
@@ -32,15 +33,26 @@ interface NavItemProps {
   icon: React.ComponentType<{ size?: number; className?: string }>
   isActive: boolean
   onClose: () => void
+  highlight?: boolean
 }
 
-const NavItem = ({ href, label, icon: Icon, isActive, onClose }: NavItemProps) => {
+const NavItem = ({ href, label, icon: Icon, isActive, onClose, highlight = false }: NavItemProps) => {
+  const highlightClasses = highlight
+    ? "mx-1 bg-gradient-to-r from-brand-yellow/30 via-amber-300/20 to-orange-300/20 ring-1 ring-brand-yellow/60 shadow-[0_0_18px_rgba(255,214,76,0.25)]"
+    : ""
+
   return (
     <li>
       <Link href={href} className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 hover:bg-white/10 ${isActive ? "text-white font-semibold bg-white/5" : "text-white/70"
+        } ${!isActive ? highlightClasses : ""}
         }`} onClick={onClose}>
         <Icon size={20} className={isActive ? "text-brand-yellow" : ""} />
         {label}
+        {highlight && !isActive && (
+          <span className="ml-auto text-[10px] uppercase tracking-wider font-bold bg-linear-to-r from-brand-yellow to-orange-300 text-slate-100 px-2 py-0.5 rounded-full">
+            New
+          </span>
+        )}
         {isActive && (
           <div className="absolute left-0 w-1.5 h-6 bg-brand-yellow rounded-r-full" />
         )}
@@ -111,6 +123,7 @@ export default function Sidebar({ role, open, onClose }: Props) {
 
           <NavItem href="/daily-update" label="Daily Update" icon={CalendarCheck} isActive={pathname === '/daily-update'} onClose={onClose} />
           <NavItem href="/daily-forum" label="Forum" icon={Send} isActive={pathname === '/daily-forum'} onClose={onClose} />
+          <NavItem href="/final-submission" label="Final Submission" icon={FileCheck2} isActive={pathname === '/final-submission'} onClose={onClose} highlight />
 
 
           {permissions.canViewFeedbackInbox(role) && (

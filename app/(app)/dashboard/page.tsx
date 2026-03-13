@@ -11,6 +11,7 @@ import CampusStats from "./components/CampusStats"
 import PersonalStats from "./components/PersonalStats"
 import TeamCard from "./components/TeamCard"
 import DemoDay from "./components/DemoDay"
+import { createClient } from "@/lib/supabase/server"
 
 
 export default async function DashboardPage() {
@@ -22,6 +23,21 @@ export default async function DashboardPage() {
 
   // Fetch personal statistics
   const personalStats = await getPersonalStats(typedProfile.id)
+
+  // Fetch final submission status for participants/buddies and show quick status card
+  let hasFinalSubmission = false
+  let finalSubmittedAt: string | null = null
+  if (!["admin", "campus_coordinator"].includes(role)) {
+    const supabase = await createClient()
+    const { data: finalSubmission } = await supabase
+      .from("final_submissions")
+      .select("submitted_at")
+      .eq("user_id", typedProfile.id)
+      .maybeSingle()
+
+    hasFinalSubmission = Boolean(finalSubmission)
+    finalSubmittedAt = finalSubmission?.submitted_at ?? null
+  }
 
 
   // Fetch stats only if admin
@@ -60,7 +76,16 @@ export default async function DashboardPage() {
         {/* <StatsCards points={points} /> */}
 
         {/* Personal Statistics Section (Visible to all users) */}
-        {personalStats && <PersonalStats stats={personalStats} />}
+        {personalStats && (
+          <PersonalStats
+            stats={personalStats}
+            finalSubmission={{
+              hasSubmitted: role === "admin" || role === "campus_coordinator" ? true : hasFinalSubmission,
+              submittedAt: finalSubmittedAt,
+              role,
+            }}
+          />
+        )}
         <TeamCard profile={typedProfile} />
 
         {/* Admin Analytics Section */}
